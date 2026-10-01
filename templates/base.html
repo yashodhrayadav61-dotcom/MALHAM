@@ -24,7 +24,7 @@
     </script>
 
     <!-- Favicon -->
-    <link rel="icon" href="{{ url_for('static', filename='img/malham-logo.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ url_for('static', filename='img/malham-logo.svg') }}?v=4" type="image/svg+xml">
 
     <!-- Google Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,8 +47,12 @@
             <!-- Brand -->
             <div class="sidebar-brand">
                 <div class="brand-icon" style="background: none; border: none; padding: 0; box-shadow: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--theme-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; display: block; filter: var(--theme-logo-glow);">
-                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                    <svg viewBox="0 0 100 100" style="width: 38px; height: 38px; display: block; filter: var(--theme-logo-glow);" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="8" y="8" width="84" height="84" rx="22" fill="var(--theme-primary)" opacity="0.12"/>
+                        <rect x="8" y="8" width="84" height="84" rx="22" stroke="var(--theme-primary)" stroke-width="2.5" fill="none" opacity="0.25"/>
+                        <path d="M 24 72 L 24 38 L 36 38 L 44 22 L 56 78 L 64 38 L 76 38 L 76 72" stroke="var(--theme-primary)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <path d="M 24 72 L 24 38" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+                        <path d="M 76 38 L 76 72" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
                     </svg>
                 </div>
                 <div class="brand-text">

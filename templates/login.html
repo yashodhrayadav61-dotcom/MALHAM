@@ -8,6 +8,7 @@
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='img/malham-logo.svg') }}?v=4" type="image/svg+xml">
     
     <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -56,6 +57,8 @@
         @media (prefers-reduced-motion: reduce) {
             .bg-img.active { animation: none; }
         }
+        [data-theme="dark"] .login-header-outside { color: #ffffff; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        [data-theme="light"] .login-header-outside { color: #0a0a0d; text-shadow: 0 2px 10px rgba(255,255,255,0.8); }
     </style>
     
     <script>
@@ -88,17 +91,22 @@
     </div>
 
         <!-- Center Card Zone -->
-        <div class="login-card-zone">
-            <div class="login-card">
-                <div class="login-header">
-                    <div class="login-brand-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--theme-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                        </svg>
-                    </div>
-                    <h1 class="login-title">MALHAM</h1>
-                    <p class="login-subtitle">ONE PLATFORM. ONE CONNECTED CARE JOURNEY.</p>
+        <div class="login-card-zone" style="flex-direction: column; align-items: center;">
+            <div class="login-header-outside" style="text-align: center; margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 8px;">
+                    <svg viewBox="0 0 100 100" style="width: 56px; height: 56px;" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="8" y="8" width="84" height="84" rx="22" fill="var(--theme-primary)" opacity="0.12"/>
+                        <rect x="8" y="8" width="84" height="84" rx="22" stroke="var(--theme-primary)" stroke-width="2.5" fill="none" opacity="0.25"/>
+                        <path d="M 24 72 L 24 38 L 36 38 L 44 22 L 56 78 L 64 38 L 76 38 L 76 72" stroke="var(--theme-primary)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <path d="M 24 72 L 24 38" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+                        <path d="M 76 38 L 76 72" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+                    </svg>
+                    <h1 class="login-title" style="margin: 0; font-size: 2.5rem; letter-spacing: 0.05em; font-weight: 800;">MALHAM</h1>
                 </div>
+                <p class="login-subtitle" style="margin: 0; font-size: 0.75rem; letter-spacing: 0.08em; font-weight: 600; text-transform: uppercase;">ONE PLATFORM. ONE CONNECTED CARE JOURNEY.</p>
+            </div>
+            
+            <div class="login-card">
 
                 {% if error %}
                     <div class="login-error-banner">
