@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+
+{% block title %}Follow-ups & Reminders{% endblock %}
+{% block page_title %}Follow-ups & Reminders{% endblock %}
+{% block page_subtitle %}Automated WhatsApp medication alerts, follow-up scheduling, check-in tracking & adherence analytics{% endblock %}
+
+{% block content %}
+<div class="followups-container">
+
+    <!-- Top Notice Banner: Core Principle -->
+    <div class="card card-notice-banner mb-20">
+        <div class="card-body flex-align-center gap-15">
+            <div class="banner-icon">
+                <i class="fa-solid fa-shield-halved text-rose-500 font-xl"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-rose-500 mb-2">Automated Reminder & Safety Principle</h4>
+                <p class="text-xs text-muted">
+                    Reminders strictly <strong>REPEAT</strong> what the attending doctor prescribed or scheduled. The system does <strong>NOT</strong> give medical advice or alter treatment regimens on its own.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 1. Top Summary Metric Cards ────────────────────────────────────── -->
+    <div class="stats-grid mb-25">
+
+        <!-- Pending Reminders -->
+        <div class="stat-card card-amber animate-in">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Pending Reminders</div>
+                <div class="stat-value">{{ pending_reminders_count }}</div>
+                <div class="stat-detail">Queued for automated dispatch</div>
+            </div>
+        </div>
+
+        <!-- Sent Today -->
+        <div class="stat-card card-emerald animate-in">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-brands fa-whatsapp"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Sent Today</div>
+                <div class="stat-value">{{ sent_today_count }}</div>
+                <div class="stat-detail">Dispatched via WhatsApp Simulation</div>
+            </div>
+        </div>
+
+        <!-- Upcoming Follow-ups -->
+        <div class="stat-card card-blue animate-in">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Upcoming Follow-ups</div>
+                <div class="stat-value">{{ upcoming_followups_count }}</div>
+                <div class="stat-detail">Appointments in pipeline</div>
+            </div>
+        </div>
+
+        <!-- Overdue Follow-ups -->
+        <div class="stat-card card-rose animate-in">
+            <div class="stat-icon icon-rose">
+                <i class="fa-solid fa-calendar-xmark"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Overdue Follow-ups</div>
+                <div class="stat-value">{{ overdue_followups_count }}</div>
+                <div class="stat-detail">Past due / missed consultations</div>
+            </div>
+        </div>
+
+        <!-- Patient Adherence % -->
+        <div class="stat-card card-violet animate-in">
+            <div class="stat-icon icon-violet">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Patient Adherence Rate</div>
+                <div class="stat-value">{{ adherence_percentage }}%</div>
+                <div class="stat-detail">Acknowledged vs Missed doses</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── 2. At-Risk Patients High-Priority Panel ───────────────────────── -->
+    {% if at_risk_patients %}
+    <div class="card card-at-risk mb-25 animate-in">
+        <div class="card-header flex-between flex-align-center">
+            <div class="flex-align-center gap-10">
+                <i class="fa-solid fa-triangle-exclamation text-rose-500 font-lg"></i>
+                <div>
+                    <h3 class="text-rose-500 font-bold">At-Risk Patients Attention Needed</h3>
+                    <p class="text-xs text-muted">Patients with missed doses, overdue appointments, or reported stopped treatments requiring immediate staff follow-up call.</p>
+                </div>
+            </div>
+            <span class="badge-risk-count">{{ at_risk_patients|length }} High Priority</span>
+        </div>
+        <div class="card-body">
+            <div class="at-risk-grid">
+                {% for rp in at_risk_patients %}
+                <div class="at-risk-card">
+                    <div class="flex-between flex-align-center mb-6">
+                        <span class="patient-name font-bold">{{ rp.name }}</span>
+                        <span class="patient-code-badge">{{ rp.patient_code }}</span>
+                    </div>
+
+                    <div class="text-xs text-muted mb-8">
+                        <i class="fa-solid fa-phone"></i> <strong>{{ rp.phone or 'N/A' }}</strong> · {{ rp.age }}y, {{ rp.gender }}
+                    </div>
+
+                    <div class="risk-reasons-list text-xs">
+                        {% if rp.last_checkin_response == 'stopped treatment' %}
+                        <div class="risk-badge risk-stopped">
+                            <i class="fa-solid fa-circle-stop"></i> <strong>Stopped Treatment</strong> on last check-in
+                        </div>
+                        {% endif %}
+
+                        {% if rp.missed_reminders_count and rp.missed_reminders_count > 0 %}
+                        <div class="risk-badge risk-missed-dose">
+                            <i class="fa-solid fa-capsules"></i> {{ rp.missed_reminders_count }} Missed Dose Reminders
+                        </div>
+                        {% endif %}
+
+                        {% if rp.overdue_followups_count and rp.overdue_followups_count > 0 %}
+                        <div class="risk-badge risk-overdue-fu">
+                            <i class="fa-solid fa-calendar-xmark"></i> {{ rp.overdue_followups_count }} Overdue Follow-ups
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-10 flex-between flex-align-center">
+                        <a href="{{ url_for('patient_profile', patient_id=rp.id) }}" class="btn btn-xs btn-outline">
+                            <i class="fa-solid fa-user"></i> View Profile
+                        </a>
+                        <a href="tel:{{ rp.phone }}" class="btn btn-xs btn-rose">
+                            <i class="fa-solid fa-phone-volume"></i> Call Patient
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── 3. Main Tabs Navigation & Data Directory ─────────────────────── -->
+    <div class="card animate-in">
+        <!-- Navigation Tabs Header -->
+        <div class="card-header p-0 border-bottom-0">
+            <div class="nav-tabs-custom">
+                <a href="{{ url_for('followups', tab='reminders', q=search_query) }}" class="tab-link {% if active_tab == 'reminders' %}active{% endif %}">
+                    <i class="fa-solid fa-bell"></i> Medication Reminders <span class="tab-badge">{{ reminders|length }}</span>
+                </a>
+                <a href="{{ url_for('followups', tab='followups', q=search_query) }}" class="tab-link {% if active_tab == 'followups' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-check"></i> Follow-up Appointments <span class="tab-badge">{{ followups|length }}</span>
+                </a>
+                <a href="{{ url_for('followups', tab='checkins', q=search_query) }}" class="tab-link {% if active_tab == 'checkins' %}active{% endif %}">
+                    <i class="fa-solid fa-clipboard-question"></i> Patient Check-ins <span class="tab-badge">{{ checkins|length }}</span>
+                </a>
+                <a href="{{ url_for('followups', tab='messagelog', q=search_query) }}" class="tab-link {% if active_tab == 'messagelog' %}active{% endif %}">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp Log <span class="tab-badge">{{ messages|length }}</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body">
+
+            <!-- Global Search & Action Bar -->
+            <div class="search-filter-bar flex-between flex-wrap gap-15 mb-20">
+                <form method="GET" action="{{ url_for('followups') }}" class="search-input-group flex-1">
+                    <input type="hidden" name="tab" value="{{ active_tab }}">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search by patient name, patient code (e.g. P-1001), or message text...">
+                    {% if search_query %}
+                    <a href="{{ url_for('followups', tab=active_tab) }}" class="clear-search-btn" title="Clear Search">&times;</a>
+                    {% endif %}
+                </form>
+
+                <!-- Tab-Specific Top Action Buttons -->
+                {% if active_tab == 'reminders' %}
+                <form method="POST" action="{{ url_for('send_due_reminders') }}">
+                    <button type="submit" class="btn btn-emerald pulse-animation">
+                        <i class="fa-brands fa-whatsapp"></i> Send All Due Reminders (Simulation)
+                    </button>
+                </form>
+                {% elif active_tab == 'followups' %}
+                <button type="button" class="btn btn-primary" onclick="openModal('scheduleFollowupModal')">
+                    <i class="fa-solid fa-plus"></i> Schedule New Follow-up
+                </button>
+                {% elif active_tab == 'checkins' %}
+                <button type="button" class="btn btn-primary" onclick="openModal('recordCheckinModal')">
+                    <i class="fa-solid fa-plus"></i> Record Patient Check-in
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- ── TAB 1: REMINDERS LIST ────────────────────────────────────── -->
+            {% if active_tab == 'reminders' %}
+                {% if reminders %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Type</th>
+                                <th>Reminder Message</th>
+                                <th>Scheduled Time</th>
+                                <th>Status</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in reminders %}
+                            <tr>
+                                <td>
+                                    <div class="font-bold">
+                                        <a href="{{ url_for('patient_profile', patient_id=r.patient_id) }}" class="hover-underline">
+                                            {{ r.patient_name }}
+                                        </a>
+                                    </div>
+                                    <div class="text-xs text-muted">{{ r.patient_code }} · {{ r.phone or 'N/A' }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge-reminder-type type-{{ r.reminder_type }}">
+                                        {{ r.reminder_type|capitalize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-sm font-medium">{{ r.message_text }}</div>
+                                    {% if r.rx_code %}
+                                    <div class="text-xs text-muted"><i class="fa-solid fa-receipt"></i> Linked: {{ r.rx_code }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-xs font-semibold">
+                                    <i class="fa-regular fa-clock"></i> {{ r.scheduled_for }}
+                                </td>
+                                <td>
+                                    <span class="badge-vstatus status-{{ r.status }}">
+                                        <i class="fa-solid fa-circle"></i> {{ r.status|capitalize }}
+                                    </span>
+                                </td>
+                                <td class="text-right">
+                                    <div class="actions-inline-btns">
+                                        {% if r.status == 'pending' %}
+                                        <form method="POST" action="{{ url_for('send_single_reminder', reminder_id=r.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-xs btn-emerald" title="Send now via WhatsApp">
+                                                <i class="fa-brands fa-whatsapp"></i> Send
+                                            </button>
+                                        </form>
+                                        {% endif %}
+
+                                        {% if r.status in ['pending', 'sent'] %}
+                                        <form method="POST" action="{{ url_for('acknowledge_reminder', reminder_id=r.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-xs btn-outline-success" title="Mark Acknowledged">
+                                                <i class="fa-solid fa-check"></i> Ack
+                                            </button>
+                                        </form>
+
+                                        <form method="POST" action="{{ url_for('mark_reminder_missed', reminder_id=r.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-xs btn-outline-danger" title="Mark Missed">
+                                                <i class="fa-solid fa-xmark"></i> Missed
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-bell-slash text-rose-500"></i>
+                    <h3>No Reminders Found</h3>
+                    <p>No medication or appointment reminders generated yet.</p>
+                </div>
+                {% endif %}
+
+            <!-- ── TAB 2: FOLLOW-UPS LIST ──────────────────────────────────── -->
+            {% elif active_tab == 'followups' %}
+                {% if followups %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Doctor</th>
+                                <th>Follow-up Date</th>
+                                <th>Purpose / Reason</th>
+                                <th>Status</th>
+                                <th class="text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in followups %}
+                            <tr>
+                                <td>
+                                    <div class="font-bold">
+                                        <a href="{{ url_for('patient_profile', patient_id=f.patient_id) }}" class="hover-underline">
+                                            {{ f.patient_name }}
+                                        </a>
+                                    </div>
+                                    <div class="text-xs text-muted">{{ f.patient_code }} · {{ f.phone or 'N/A' }}</div>
+                                </td>
+                                <td>
+                                    <div class="font-medium text-sm">{{ f.doctor_name or 'Unassigned Staff' }}</div>
+                                    <div class="text-xs text-muted">{{ f.specialization or '' }}</div>
+                                </td>
+                                <td class="font-bold text-sm">
+                                    <span class="badge-followup-date">
+                                        <i class="fa-solid fa-calendar-day"></i> {{ f.followup_date }}
+                                    </span>
+                                </td>
+                                <td class="text-sm">
+                                    {{ f.purpose or f.reason or 'Routine follow-up' }}
+                                    {% if f.notes %}
+                                    <div class="text-xs text-muted">Notes: {{ f.notes }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge-vstatus status-{{ f.status }}">
+                                        <i class="fa-solid fa-circle"></i> {{ f.status|capitalize }}
+                                    </span>
+                                </td>
+                                <td class="text-right">
+                                    <form method="POST" action="{{ url_for('update_followup_status', followup_id=f.id) }}" class="inline-form">
+                                        <select name="status" class="form-select select-xs" onchange="this.form.submit()">
+                                            <option value="scheduled" {% if f.status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                                            <option value="completed" {% if f.status == 'completed' %}selected{% endif %}>Completed</option>
+                                            <option value="missed" {% if f.status == 'missed' %}selected{% endif %}>Missed</option>
+                                            <option value="cancelled" {% if f.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                        </select>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-calendar-xmark text-rose-500"></i>
+                    <h3>No Follow-up Appointments</h3>
+                    <p>No follow-up consultations scheduled.</p>
+                </div>
+                {% endif %}
+
+            <!-- ── TAB 3: CHECK-INS LIST ────────────────────────────────────── -->
+            {% elif active_tab == 'checkins' %}
+                {% if checkins %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Patient</th>
+                                <th>Check-in Topic</th>
+                                <th>Patient Response</th>
+                                <th>Staff Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in checkins %}
+                            <tr>
+                                <td class="text-xs font-semibold">{{ c.checkin_date }}</td>
+                                <td>
+                                    <div class="font-bold">
+                                        <a href="{{ url_for('patient_profile', patient_id=c.patient_id) }}" class="hover-underline">
+                                            {{ c.patient_name }}
+                                        </a>
+                                    </div>
+                                    <div class="text-xs text-muted">{{ c.patient_code }}</div>
+                                </td>
+                                <td class="text-sm font-medium">{{ c.question or 'Medication check-in' }}</td>
+                                <td>
+                                    {% if c.response == 'stopped treatment' %}
+                                    <span class="badge-response resp-stopped">
+                                        <i class="fa-solid fa-circle-stop"></i> Stopped Treatment
+                                    </span>
+                                    {% elif c.response == 'missed some' %}
+                                    <span class="badge-response resp-missed">
+                                        <i class="fa-solid fa-circle-exclamation"></i> Missed Some
+                                    </span>
+                                    {% elif c.response == 'took all medicines' %}
+                                    <span class="badge-response resp-took-all">
+                                        <i class="fa-solid fa-circle-check"></i> Took All Medicines
+                                    </span>
+                                    {% else %}
+                                    <span class="badge-response resp-na">Not Answered</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-xs text-muted">{{ c.notes or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-clipboard-question text-rose-500"></i>
+                    <h3>No Check-ins Recorded</h3>
+                    <p>No patient check-in responses recorded yet.</p>
+                </div>
+                {% endif %}
+
+            <!-- ── TAB 4: WHATSAPP MESSAGE LOG (CHAT BUBBLES LAYOUT) ────────── -->
+            {% elif active_tab == 'messagelog' %}
+                {% if grouped_messages %}
+                <div class="whatsapp-chat-layout">
+                    <div class="chat-sidebar-list">
+                        <div class="chat-header font-bold text-xs"><i class="fa-brands fa-whatsapp text-emerald-500"></i> Patient WhatsApp Threads</div>
+                        {% for p_name, msg_group in grouped_messages.items() %}
+                        <div class="chat-thread-item {% if loop.first %}active{% endif %}" onclick="switchThread('thread-{{ loop.index }}', this)">
+                            <div class="chat-avatar"><i class="fa-solid fa-user"></i></div>
+                            <div class="chat-thread-info">
+                                <div class="thread-name font-bold text-sm">{{ p_name }}</div>
+                                <div class="thread-preview text-xs text-muted">{{ msg_group[-1].message|truncate(45) }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="chat-body-container">
+                        {% for p_name, msg_group in grouped_messages.items() %}
+                        <div class="chat-thread-content" id="thread-{{ loop.index }}" style="{% if not loop.first %}display:none;{% endif %}">
+                            <div class="chat-thread-header flex-between">
+                                <div class="font-bold"><i class="fa-brands fa-whatsapp text-emerald-500"></i> Conversation with {{ p_name }}</div>
+                                <span class="badge-whatsapp-sim">WhatsApp Simulation Mode</span>
+                            </div>
+
+                            <div class="chat-messages-scroll">
+                                {% for m in msg_group %}
+                                <div class="chat-bubble-row {% if m.status == 'received' %}bubble-received{% else %}bubble-sent{% endif %}">
+                                    <div class="chat-bubble">
+                                        <div class="bubble-sender text-xs font-semibold">
+                                            {% if m.status == 'received' %}Patient Reply{% else %}MALHAM Automated WhatsApp{% endif %}
+                                        </div>
+                                        <div class="bubble-text text-sm">{{ m.message }}</div>
+                                        <div class="bubble-time text-xs text-right">
+                                            {{ m.sent_on }} 
+                                            {% if m.status == 'sent' %}
+                                            <i class="fa-solid fa-check-double text-cyan-400"></i>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-brands fa-whatsapp text-emerald-500"></i>
+                    <h3>No WhatsApp Messages Logged</h3>
+                    <p>No messages dispatched in simulation log yet.</p>
+                </div>
+                {% endif %}
+
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ── MODAL: Schedule Follow-up Appointment ───────────────────────────── -->
+<div class="modal-backdrop" id="scheduleFollowupModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-calendar-plus"></i> Schedule Follow-up Appointment</h3>
+            <button class="modal-close" onclick="closeModal('scheduleFollowupModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_followup') }}">
+            <div class="modal-body">
+
+                <div class="form-group mb-15">
+                    <label class="required">Select Patient</label>
+                    <select name="patient_id" required class="form-select">
+                        <option value="">-- Choose Patient --</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}">{{ p.name }} ({{ p.patient_code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-row mb-15">
+                    <div class="form-group col-6">
+                        <label>Assigned Doctor</label>
+                        <select name="doctor_id" class="form-select">
+                            <option value="">-- Select Doctor --</option>
+                            {% for d in doctors %}
+                            <option value="{{ d.id }}">{{ d.name }} ({{ d.specialization }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label class="required">Follow-up Date</label>
+                        <input type="date" name="followup_date" required class="form-control" min="{{ today_date }}">
+                    </div>
+                </div>
+
+                <div class="form-group mb-15">
+                    <label>Purpose / Reason for Follow-up</label>
+                    <input type="text" name="purpose" class="form-control" placeholder="e.g. Blood pressure review & medication adjustment">
+                </div>
+
+                <div class="form-group">
+                    <label>Additional Notes</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Bring recent fasting blood test report"></textarea>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('scheduleFollowupModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Schedule Appointment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── MODAL: Record Patient Check-in ──────────────────────────────────── -->
+<div class="modal-backdrop" id="recordCheckinModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-clipboard-question"></i> Record Patient Check-in</h3>
+            <button class="modal-close" onclick="closeModal('recordCheckinModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_checkin') }}">
+            <div class="modal-body">
+
+                <div class="form-group mb-15">
+                    <label class="required">Select Patient</label>
+                    <select name="patient_id" required class="form-select">
+                        <option value="">-- Choose Patient --</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}">{{ p.name }} ({{ p.patient_code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group mb-15">
+                    <label class="required">Check-in Patient Response</label>
+                    <select name="response" required class="form-select">
+                        <option value="took all medicines">🟢 Took All Medicines ( Full Adherence )</option>
+                        <option value="missed some">⚡ Missed Some Doses ( Partial Adherence )</option>
+                        <option value="stopped treatment" style="color:red; font-weight:bold;">🚨 Stopped Treatment ( High Risk Alert )</option>
+                        <option value="not answered">⚪ Not Answered / Unreachable</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-15">
+                    <label>Check-in Topic / Question</label>
+                    <input type="text" name="question" class="form-control" value="Medication Adherence Check-in">
+                </div>
+
+                <div class="form-group">
+                    <label>Notes & Feedback</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Patient experienced dizziness, advised to drink water..."></textarea>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('recordCheckinModal')">Cancel</button>
+                <button type="submit" class="btn btn-rose">Record Check-in</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function switchThread(threadId, itemEl) {
+    document.querySelectorAll('.chat-thread-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.chat-thread-item').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(threadId).style.display = 'block';
+    itemEl.classList.add('active');
+}
+</script>
+{% endblock %}

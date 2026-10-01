@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Smart Prescriptions{% endblock %}
+{% block page_title %}Smart Prescriptions{% endblock %}
+{% block page_subtitle %}Digital patient prescriptions with automated dosage schedule clarification{% endblock %}
+
+{% block content %}
+<div class="prescriptions-container">
+
+    <!-- Top Action Bar & Summary Metrics -->
+    <div class="stats-grid mb-20">
+
+        <!-- Total Prescriptions -->
+        <div class="stat-card card-rose animate-in">
+            <div class="stat-icon icon-rose">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Total Prescriptions</div>
+                <div class="stat-value">{{ total_count }}</div>
+                <div class="stat-detail">Lifetime issued records</div>
+            </div>
+        </div>
+
+        <!-- Active Today -->
+        <div class="stat-card card-emerald animate-in">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-file-circle-check"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Active Issued Today</div>
+                <div class="stat-value">{{ active_today_count }}</div>
+                <div class="stat-detail">Prescribed on {{ today_date }}</div>
+            </div>
+        </div>
+
+        <!-- Follow-ups Due This Week -->
+        <div class="stat-card card-amber animate-in">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-calendar-week"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Follow-ups Due (7 Days)</div>
+                <div class="stat-value">{{ followups_due_week_count }}</div>
+                <div class="stat-detail">Patients scheduled for review</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Main List Card -->
+    <div class="card animate-in">
+        <div class="card-header flex-between flex-wrap gap-15">
+            <div class="flex-align-center gap-10">
+                <h3><i class="fa-solid fa-file-prescription text-rose-600"></i> Prescriptions Directory</h3>
+                <span class="card-badge">{{ prescriptions|length }} Items Listed</span>
+            </div>
+
+            <a href="{{ url_for('new_prescription') }}" class="btn btn-rose">
+                <i class="fa-solid fa-plus"></i> Issue New Prescription
+            </a>
+        </div>
+
+        <div class="card-body">
+
+            <!-- Search & Filter Controls -->
+            <form method="GET" action="{{ url_for('prescriptions') }}" class="search-filter-bar mb-20">
+                <div class="search-input-group flex-1">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search by patient name, patient code (e.g. P-1001), or RX code (e.g. RX-2001)...">
+                    {% if search_query %}
+                    <a href="{{ url_for('prescriptions') }}" class="clear-search-btn" title="Clear Search">&times;</a>
+                    {% endif %}
+                </div>
+
+                <div class="filter-group">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="all" {% if status_filter == 'all' or not status_filter %}selected{% endif %}>All Statuses</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>🟢 Active</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>🔵 Completed</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>🔴 Cancelled</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-filter"></i> Filter
+                </button>
+            </form>
+
+            <!-- Data Table -->
+            {% if prescriptions %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>RX Code</th>
+                            <th>Patient Details</th>
+                            <th>Attending Doctor</th>
+                            <th>Prescribed Medicines</th>
+                            <th>Issued Date</th>
+                            <th>Follow-up Date</th>
+                            <th>Status</th>
+                            <th class="text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rx in prescriptions %}
+                        <tr>
+                            <td class="font-bold">
+                                <a href="{{ url_for('view_prescription', prescription_id=rx.id) }}" class="rx-code-link">
+                                    <i class="fa-solid fa-receipt text-rose-500"></i> {{ rx.rx_code or ('RX-' ~ rx.id) }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="font-semibold">
+                                    <a href="{{ url_for('patient_profile', patient_id=rx.patient_id) }}" class="hover-underline">
+                                        {{ rx.patient_name }}
+                                    </a>
+                                </div>
+                                <div class="text-xs text-muted flex-align-center gap-6">
+                                    <span class="patient-code-badge">{{ rx.patient_code }}</span>
+                                    <span>· {{ rx.age }}y, {{ rx.gender }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="font-medium text-sm"><i class="fa-solid fa-user-doctor text-xs text-muted"></i> {{ rx.doctor_name or 'Unassigned' }}</div>
+                                <div class="text-xs text-muted">{{ rx.specialization or '' }}</div>
+                            </td>
+                            <td>
+                                <div class="rx-meds-summary">
+                                    {% if rx.med_items %}
+                                        {% for item in rx.med_items %}
+                                        <div class="rx-med-pill-item">
+                                            <span class="font-medium">{{ item.medicine_name }}</span>
+                                            <span class="pattern-tag">{{ item.dosage_pattern }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted text-xs">No items attached</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-xs text-muted font-medium">
+                                <i class="fa-regular fa-calendar-check"></i> {{ rx.issued_on[:10] if rx.issued_on else '—' }}
+                            </td>
+                            <td class="text-xs">
+                                {% if rx.follow_up_date %}
+                                    <span class="badge-followup-date">
+                                        <i class="fa-solid fa-calendar-day"></i> {{ rx.follow_up_date }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge-vstatus status-{{ rx.status or 'active' }}">
+                                    <i class="fa-solid fa-circle"></i> {{ (rx.status or 'active')|capitalize }}
+                                </span>
+                            </td>
+                            <td class="text-right">
+                                <div class="actions-inline-flex" style="display:inline-flex; gap:6px;">
+                                    <form method="POST" action="{{ url_for('generate_reminders_route', prescription_id=rx.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-xs btn-rose-outline" title="Generate Medication & Follow-up Reminders">
+                                            <i class="fa-solid fa-bell"></i> Reminders
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('view_prescription', prescription_id=rx.id) }}" class="btn btn-xs btn-outline">
+                                        <i class="fa-solid fa-eye"></i> View Card
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-file-prescription text-rose-500"></i>
+                <h3>No Prescriptions Found</h3>
+                <p>No prescriptions match your search criteria.</p>
+                <a href="{{ url_for('new_prescription') }}" class="btn btn-rose mt-10">
+                    <i class="fa-solid fa-plus"></i> Issue New Prescription
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

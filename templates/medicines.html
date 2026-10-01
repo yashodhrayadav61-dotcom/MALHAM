@@ -1,0 +1,542 @@
+{% extends "base.html" %}
+
+{% block title %}Medicines & Inventory{% endblock %}
+{% block page_title %}Medicines & Inventory Management{% endblock %}
+{% block page_subtitle %}Track pharmaceutical stock, low-stock alerts, restock logs, and dispensing{% endblock %}
+
+{% block content %}
+<div class="medicines-container">
+
+    <!-- ── Alert Banner for Insufficient Stock ─────────────────── -->
+    {% if error_msg == 'insufficient_stock' %}
+    <div class="alert alert-danger animate-in">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span><strong>Dispense Rejected:</strong> Cannot dispense more units than currently available in stock!</span>
+    </div>
+    {% endif %}
+
+    <!-- ── Summary Metrics Cards ──────────────────────────────── -->
+    <div class="stats-grid animate-in">
+        <div class="stat-card card-blue">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-pills"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Total Medicines in Catalog</div>
+                <div class="stat-value">{{ total_medicines }}</div>
+                <div class="stat-detail">Pharmaceutical items tracked</div>
+            </div>
+        </div>
+
+        <div class="stat-card card-emerald">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Low Stock Items</div>
+                <div class="stat-value text-amber-600">{{ low_stock_count }}</div>
+                <div class="stat-detail">Quantity at or below reorder level</div>
+            </div>
+        </div>
+
+        <div class="stat-card card-rose">
+            <div class="stat-icon icon-rose">
+                <i class="fa-solid fa-box-open"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Out of Stock</div>
+                <div class="stat-value text-rose-600">{{ out_of_stock_count }}</div>
+                <div class="stat-detail">Zero units remaining in pharmacy</div>
+            </div>
+        </div>
+
+        <div class="stat-card card-violet">
+            <div class="stat-icon icon-violet">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Expiring Soon (&le;30 Days)</div>
+                <div class="stat-value text-orange-600">{{ expiring_soon_count }}</div>
+                <div class="stat-detail">Items approaching expiration date</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Prominent Low Stock & Expiry Alerts Panel ───────────── -->
+    {% if alerts_list %}
+    <div class="card alert-panel-card animate-in">
+        <div class="card-header flex-between">
+            <h3 class="text-amber-600">
+                <i class="fa-solid fa-triangle-exclamation"></i> Low Stock & Expiry Warnings ({{ alerts_list|length }} Items Need Attention)
+            </h3>
+            <span class="card-badge badge-warning-count">{{ alerts_list|length }} Action Required</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="alerts-horizontal-scroll">
+                {% for item in alerts_list %}
+                <div class="alert-item-card alert-type-{% if item.quantity == 0 %}out{% elif item.quantity <= (item.reorder_level or 20) %}low{% else %}expiring{% endif %}">
+                    <div class="aic-header">
+                        <span class="aic-name">{{ item.name }}</span>
+                        <span class="badge-med-status status-{{ item.status }}">
+                            {% if item.quantity == 0 %}
+                            Out of Stock
+                            {% elif item.quantity <= (item.reorder_level or 20) %}
+                            Low Stock
+                            {% else %}
+                            Expiring Soon
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="aic-body">
+                        <div class="text-xs text-muted">{{ item.generic_name or item.category }} · {{ item.strength or 'Standard' }}</div>
+                        <div class="aic-stock-num mt-4">
+                            Stock: <strong>{{ item.quantity }}</strong> units <span class="text-xs text-muted">(Reorder @ {{ item.reorder_level or 20 }})</span>
+                        </div>
+                        {% if item.expiry_date %}
+                        <div class="text-xs text-muted mt-2"><i class="fa-regular fa-calendar"></i> Expires: {{ item.expiry_date }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="aic-footer mt-8">
+                        <button class="btn btn-xs btn-outline-primary w-full" onclick='openRestockModal({{ item.id }}, "{{ item.name|e }}", {{ item.quantity }})'>
+                            <i class="fa-solid fa-truck-ramp-box"></i> Restock Now
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Filter Bar & Action Header ─────────────────────────── -->
+    <div class="header-actions-bar">
+        <form method="GET" action="{{ url_for('medicines') }}" class="filter-row flex-1">
+            <div class="filter-field search-field">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search medicine name, generic, category, supplier..." class="form-control">
+            </div>
+
+            <div class="filter-field">
+                <select name="category" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Stock Statuses</option>
+                    <option value="in-stock" {% if status_filter == 'in-stock' %}selected{% endif %}>In Stock (Green)</option>
+                    <option value="low-stock" {% if status_filter == 'low-stock' %}selected{% endif %}>Low Stock (Amber)</option>
+                    <option value="out-of-stock" {% if status_filter == 'out-of-stock' %}selected{% endif %}>Out of Stock (Neon Red)</option>
+                    <option value="expiring-soon" {% if status_filter == 'expiring-soon' %}selected{% endif %}>Expiring Soon (Orange)</option>
+                </select>
+            </div>
+
+            {% if search_query or category_filter or status_filter %}
+            <a href="{{ url_for('medicines') }}" class="btn btn-ghost">
+                <i class="fa-solid fa-xmark"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+
+        <button class="btn btn-primary" onclick="openModal('addMedicineModal')">
+            <i class="fa-solid fa-plus"></i> Add New Medicine
+        </button>
+    </div>
+
+    <!-- ── Inventory Table ────────────────────────────────────── -->
+    <div class="card animate-in">
+        <div class="card-body p-0">
+            {% if medicines %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Medicine & Generic Name</th>
+                        <th>Category & Form</th>
+                        <th>Strength</th>
+                        <th>Current Stock Level</th>
+                        <th>Unit Price</th>
+                        <th>Expiry Date</th>
+                        <th>Supplier</th>
+                        <th>Status</th>
+                        <th>Inventory Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medicines %}
+                    {% set is_expiring = med.expiry_date and med.expiry_date <= expiring_threshold %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('medicine_detail', med_id=med.id) }}" class="font-semibold text-blue-600 hover:underline">
+                                {{ med.name }}
+                            </a>
+                            <div class="text-xs text-muted">{{ med.generic_name or '—' }}</div>
+                        </td>
+                        <td>
+                            <span class="badge-cat">{{ med.category or 'General' }}</span>
+                            <div class="text-xs text-muted text-capitalize mt-2">{{ med.form or 'tablet' }}</div>
+                        </td>
+                        <td class="font-semibold text-sm">{{ med.strength or '—' }}</td>
+                        <td>
+                            <div class="stock-level-wrapper">
+                                <div class="font-semibold">{{ med.quantity }} <span class="text-xs text-muted">units</span></div>
+                                {% set pct = (med.quantity / ((med.reorder_level or 20) * 3) * 100)|round(1) %}
+                                {% if pct > 100 %}{% set pct = 100 %}{% endif %}
+                                <div class="stock-mini-bar">
+                                    <div class="sm-fill fill-status-{% if med.quantity == 0 %}out{% elif med.quantity <= (med.reorder_level or 20) %}low{% else %}in{% endif %}" style="width:{{ pct }}%;"></div>
+                                </div>
+                                <span class="text-xs text-muted">Reorder @ {{ med.reorder_level or 20 }}</span>
+                            </div>
+                        </td>
+                        <td class="font-semibold">&sharp;{{ "%.2f"|format(med.unit_price or 0.0) }}</td>
+                        <td>
+                            {% if is_expiring %}
+                            <span class="badge-expiring-soon" title="Expires within 30 days">
+                                <i class="fa-solid fa-clock"></i> {{ med.expiry_date }}
+                            </span>
+                            {% else %}
+                            <span class="text-sm text-gray-700">{{ med.expiry_date or '—' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-xs text-muted">{{ med.supplier or 'Standard Supplier' }}</td>
+                        <td>
+                            <span class="badge-med-status status-{{ med.status }}">
+                                <i class="fa-solid fa-circle"></i>
+                                {% if med.status == 'out-of-stock' or med.quantity == 0 %}
+                                Out of Stock
+                                {% elif med.status == 'low-stock' or med.quantity <= (med.reorder_level or 20) %}
+                                Low Stock
+                                {% elif is_expiring %}
+                                Expiring
+                                {% else %}
+                                In Stock
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-btn-group">
+                                <button class="btn btn-xs btn-success" onclick='openRestockModal({{ med.id }}, "{{ med.name|e }}", {{ med.quantity }})' title="Add Stock">
+                                    <i class="fa-solid fa-plus"></i> Restock
+                                </button>
+                                <button class="btn btn-xs btn-danger" {% if med.quantity == 0 %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %} onclick='openDispenseModal({{ med.id }}, "{{ med.name|e }}", {{ med.quantity }})' title="Dispense Stock">
+                                    <i class="fa-solid fa-minus"></i> Dispense
+                                </button>
+                                <a href="{{ url_for('medicine_detail', med_id=med.id) }}" class="btn-icon btn-icon-sm" title="View Stock Logs">
+                                    <i class="fa-solid fa-history"></i>
+                                </a>
+                                <button class="btn-icon btn-icon-sm" onclick='openEditMedicineModal({{ med|tojson }})' title="Edit Medicine">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-pills"></i>
+                <h3>No Medicines Found</h3>
+                <p>No pharmaceutical items match your search and filter criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: ADD MEDICINE                                            -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="addMedicineModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-plus"></i> Add New Medicine</h3>
+            <button class="modal-close" onclick="closeModal('addMedicineModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_medicine') }}">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Brand / Trade Name *</label>
+                        <input type="text" name="name" required placeholder="e.g. Paracetamol 500mg" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Generic Name</label>
+                        <input type="text" name="generic_name" placeholder="e.g. Acetaminophen" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Category *</label>
+                        <input type="text" name="category" required placeholder="e.g. Antibiotic, Painkiller" class="form-control" list="cat-list">
+                        <datalist id="cat-list">
+                            {% for c in categories %}
+                            <option value="{{ c }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Dosage Form</label>
+                        <select name="form" class="form-select">
+                            <option value="tablet">Tablet</option>
+                            <option value="capsule">Capsule</option>
+                            <option value="injection">Injection</option>
+                            <option value="syrup">Syrup</option>
+                            <option value="ointment">Ointment / Gel</option>
+                            <option value="inhaler">Inhaler</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Strength / Spec</label>
+                        <input type="text" name="strength" placeholder="e.g. 500mg, 10mg/ml" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Initial Stock Quantity</label>
+                        <input type="number" name="quantity" min="0" value="100" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Reorder Alert Threshold</label>
+                        <input type="number" name="reorder_level" min="1" value="20" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Unit Price (&sharp;)</label>
+                        <input type="number" step="0.01" name="unit_price" value="5.00" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Expiry Date</label>
+                        <input type="date" name="expiry_date" value="{{ today_date }}" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Supplier / Manufacturer</label>
+                        <input type="text" name="supplier" placeholder="e.g. MedSupply Co." class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addMedicineModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Medicine</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: EDIT MEDICINE                                           -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="editMedicineModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-pen-to-square"></i> Edit Medicine Parameters</h3>
+            <button class="modal-close" onclick="closeModal('editMedicineModal')">&times;</button>
+        </div>
+        <form id="editMedicineForm" method="POST" action="">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Brand / Trade Name *</label>
+                        <input type="text" id="edit_m_name" name="name" required class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Generic Name</label>
+                        <input type="text" id="edit_m_generic" name="generic_name" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Category</label>
+                        <input type="text" id="edit_m_category" name="category" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Dosage Form</label>
+                        <select id="edit_m_form" name="form" class="form-select">
+                            <option value="tablet">Tablet</option>
+                            <option value="capsule">Capsule</option>
+                            <option value="injection">Injection</option>
+                            <option value="syrup">Syrup</option>
+                            <option value="ointment">Ointment / Gel</option>
+                            <option value="inhaler">Inhaler</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Strength</label>
+                        <input type="text" id="edit_m_strength" name="strength" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Reorder Threshold</label>
+                        <input type="number" id="edit_m_reorder" name="reorder_level" min="1" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Unit Price (&sharp;)</label>
+                        <input type="number" step="0.01" id="edit_m_price" name="unit_price" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Expiry Date</label>
+                        <input type="date" id="edit_m_expiry" name="expiry_date" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Supplier Name</label>
+                    <input type="text" id="edit_m_supplier" name="supplier" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editMedicineModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: RESTOCK MEDICINE                                        -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="restockModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-truck-ramp-box"></i> Restock Medicine Stock</h3>
+            <button class="modal-close" onclick="closeModal('restockModal')">&times;</button>
+        </div>
+        <form id="restockForm" method="POST" action="">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Medicine</label>
+                    <input type="text" id="restock_med_name" class="form-control" readonly style="background:var(--gray-100); font-weight:bold;">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Current Stock</label>
+                        <input type="text" id="restock_current_qty" class="form-control" readonly style="background:var(--gray-100);">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Add Units *</label>
+                        <input type="number" name="quantity_change" min="1" required value="50" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Restock Log Note</label>
+                    <input type="text" name="note" placeholder="e.g. Received new shipment batch #402" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('restockModal')">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-plus"></i> Confirm Restock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: DISPENSE MEDICINE                                       -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="dispenseModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-prescription-bottle"></i> Dispense Medicine Stock</h3>
+            <button class="modal-close" onclick="closeModal('dispenseModal')">&times;</button>
+        </div>
+        <form id="dispenseForm" method="POST" action="">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Medicine</label>
+                    <input type="text" id="dispense_med_name" class="form-control" readonly style="background:var(--gray-100); font-weight:bold;">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Available Stock</label>
+                        <input type="text" id="dispense_current_qty" class="form-control" readonly style="background:var(--gray-100); color:#dc2626; font-weight:bold;">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Dispense Quantity *</label>
+                        <input type="number" id="dispense_input_qty" name="quantity_change" min="1" required value="1" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Dispense Purpose / Note</label>
+                    <input type="text" name="note" placeholder="e.g. Dispensed for Patient Rx #1002" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('dispenseModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger"><i class="fa-solid fa-minus"></i> Confirm Dispense</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function openRestockModal(medId, medName, currentQty) {
+    document.getElementById('restockForm').action = '/medicines/' + medId + '/restock';
+    document.getElementById('restock_med_name').value = medName;
+    document.getElementById('restock_current_qty').value = currentQty + ' units';
+    openModal('restockModal');
+}
+
+function openDispenseModal(medId, medName, currentQty) {
+    document.getElementById('dispenseForm').action = '/medicines/' + medId + '/dispense';
+    document.getElementById('dispense_med_name').value = medName;
+    document.getElementById('dispense_current_qty').value = currentQty + ' units';
+    document.getElementById('dispense_input_qty').max = currentQty;
+    openModal('dispenseModal');
+}
+
+function openEditMedicineModal(med) {
+    document.getElementById('editMedicineForm').action = '/medicines/' + med.id + '/edit';
+    document.getElementById('edit_m_name').value = med.name || '';
+    document.getElementById('edit_m_generic').value = med.generic_name || '';
+    document.getElementById('edit_m_category').value = med.category || '';
+    document.getElementById('edit_m_form').value = med.form || 'tablet';
+    document.getElementById('edit_m_strength').value = med.strength || '';
+    document.getElementById('edit_m_reorder').value = med.reorder_level || 20;
+    document.getElementById('edit_m_price').value = med.unit_price || 0;
+    document.getElementById('edit_m_expiry').value = med.expiry_date || '';
+    document.getElementById('edit_m_supplier').value = med.supplier || '';
+    openModal('editMedicineModal');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Medicine Detail - {{ medicine.name }}{% endblock %}
+{% block page_title %}Medicine Inventory & Log{% endblock %}
+{% block page_subtitle %}{{ medicine.name }} ({{ medicine.strength or 'Standard' }}){% endblock %}
+
+{% block content %}
+<div class="medicine-detail-container">
+
+    <!-- Top Action Header -->
+    <div class="header-actions-bar">
+        <a href="{{ url_for('medicines') }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Back to Catalog
+        </a>
+
+        <div class="actions-buttons">
+            <button class="btn btn-success" onclick="openModal('detailRestockModal')">
+                <i class="fa-solid fa-plus"></i> Restock Stock
+            </button>
+            <button class="btn btn-danger" {% if medicine.quantity == 0 %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %} onclick="openModal('detailDispenseModal')">
+                <i class="fa-solid fa-minus"></i> Dispense Stock
+            </button>
+        </div>
+    </div>
+
+    <!-- Medicine Summary Card -->
+    <div class="card animate-in">
+        <div class="card-body">
+            <div class="profile-header-flex">
+                <div class="profile-avatar text-emerald-600 bg-emerald-50">
+                    <i class="fa-solid fa-pills"></i>
+                </div>
+
+                <div class="profile-main-info">
+                    <div class="flex-align-center gap-10">
+                        <h2>{{ medicine.name }}</h2>
+                        <span class="badge-cat">{{ medicine.category or 'General' }}</span>
+                        <span class="badge-med-status status-{{ medicine.status }}">
+                            {{ medicine.status|replace('-', ' ')|capitalize }}
+                        </span>
+                    </div>
+
+                    <div class="profile-meta-row mt-6">
+                        <span><i class="fa-solid fa-vial"></i> Generic: <strong>{{ medicine.generic_name or '—' }}</strong></span>
+                        <span><i class="fa-solid fa-prescription-bottle"></i> Form: <strong class="text-capitalize">{{ medicine.form or 'tablet' }}</strong></span>
+                        <span><i class="fa-solid fa-weight-hanging"></i> Strength: <strong>{{ medicine.strength or 'N/A' }}</strong></span>
+                        <span><i class="fa-solid fa-boxes-stacked"></i> Current Stock: <strong class="text-lg text-blue-600">{{ medicine.quantity }}</strong> units</span>
+                        <span><i class="fa-solid fa-bell"></i> Reorder Threshold: <strong>{{ medicine.reorder_level or 20 }}</strong></span>
+                        <span><i class="fa-solid fa-tag"></i> Unit Price: <strong>&sharp;{{ "%.2f"|format(medicine.unit_price or 0.0) }}</strong></span>
+                        <span><i class="fa-regular fa-calendar"></i> Expiry: <strong>{{ medicine.expiry_date or 'N/A' }}</strong></span>
+                        <span><i class="fa-solid fa-truck"></i> Supplier: <strong>{{ medicine.supplier or 'Standard Supplier' }}</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Log History Table -->
+    <div class="card animate-in">
+        <div class="card-header flex-between">
+            <h3><i class="fa-solid fa-history"></i> Stock Change History & Audit Log</h3>
+            <span class="card-badge">{{ logs|length }} Audit Records</span>
+        </div>
+        <div class="card-body p-0">
+            {% if logs %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Action / Change Type</th>
+                        <th>Quantity Change</th>
+                        <th>Staff / Transaction Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in logs %}
+                    <tr>
+                        <td class="text-xs font-semibold">{{ l.logged_on }}</td>
+                        <td>
+                            <span class="badge-stock-log log-type-{{ l.change_type }}">
+                                {% if l.change_type == 'restock' %}
+                                <i class="fa-solid fa-arrow-down-long"></i> Restock
+                                {% elif l.change_type == 'dispense' %}
+                                <i class="fa-solid fa-arrow-up-long"></i> Dispense
+                                {% else %}
+                                <i class="fa-solid fa-sliders"></i> Adjustment
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="font-bold {% if l.quantity_change > 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                            {% if l.quantity_change > 0 %}+{% endif %}{{ l.quantity_change }} units
+                        </td>
+                        <td class="text-sm text-gray-700">{{ l.note or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-history"></i>
+                <h3>No Stock Log Entries</h3>
+                <p>No transactions recorded for this medicine yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Restock -->
+<div class="modal-backdrop" id="detailRestockModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-truck-ramp-box"></i> Restock {{ medicine.name }}</h3>
+            <button class="modal-close" onclick="closeModal('detailRestockModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('restock_medicine', med_id=medicine.id) }}">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Current Stock</label>
+                        <input type="text" value="{{ medicine.quantity }} units" class="form-control" readonly style="background:var(--gray-100);">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Add Quantity *</label>
+                        <input type="number" name="quantity_change" min="1" required value="50" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Restock Log Note</label>
+                    <input type="text" name="note" placeholder="e.g. Added shipment batch" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('detailRestockModal')">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-plus"></i> Restock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Dispense -->
+<div class="modal-backdrop" id="detailDispenseModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-prescription-bottle"></i> Dispense {{ medicine.name }}</h3>
+            <button class="modal-close" onclick="closeModal('detailDispenseModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('dispense_medicine', med_id=medicine.id) }}">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Available Stock</label>
+                        <input type="text" value="{{ medicine.quantity }} units" class="form-control" readonly style="background:var(--gray-100); color:#dc2626; font-weight:bold;">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Dispense Quantity *</label>
+                        <input type="number" name="quantity_change" min="1" max="{{ medicine.quantity }}" required value="1" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Dispense Purpose / Note</label>
+                    <input type="text" name="note" placeholder="e.g. Outpatient prescription" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('detailDispenseModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger"><i class="fa-solid fa-minus"></i> Dispense</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+</script>
+{% endblock %}

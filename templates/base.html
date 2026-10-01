@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MALHAM – Connecting Every Layer of Hospital Care. A modern hospital management platform.">
+    <title>{% block title %}MALHAM{% endblock %} – Hospital Care Platform</title>
+
+    <!-- Favicon (emoji-based inline SVG) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+
+    <!-- Google Fonts (loaded via CSS @import, but also preconnect for speed) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Font Awesome 6 (icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- App Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <div class="app-wrapper">
+
+        <!-- ── Sidebar ──────────────────────────────────────────── -->
+        <aside class="sidebar" id="sidebar">
+
+            <!-- Brand -->
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">MALHAM</span>
+                    <span class="brand-tagline">Connecting Every Layer of Hospital Care</span>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">Main Menu</div>
+
+                {% if current_user and current_user.role == 'patient' %}
+                    {% if current_user.patient_id %}
+                    <a href="/patients/{{ current_user.patient_id }}" class="nav-link {% if request.path.startswith('/patients/') %}active{% endif %}">
+                        <i class="fa-solid fa-hospital-user"></i>
+                        <span>My Profile</span>
+                    </a>
+                    {% endif %}
+                {% else %}
+                    <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <span>Dashboard</span>
+                    </a>
+
+                    <a href="/patients" class="nav-link {% if request.path.startswith('/patients') %}active{% endif %}">
+                        <i class="fa-solid fa-hospital-user"></i>
+                        <span>Patients</span>
+                    </a>
+
+                    <a href="/beds" class="nav-link {% if request.path == '/beds' %}active{% endif %}">
+                        <i class="fa-solid fa-bed"></i>
+                        <span>Beds</span>
+                    </a>
+
+                    <a href="/doctors" class="nav-link {% if request.path == '/doctors' %}active{% endif %}">
+                        <i class="fa-solid fa-user-doctor"></i>
+                        <span>Doctors</span>
+                    </a>
+
+                    <div class="nav-section-label">Management</div>
+
+                    <a href="/medicines" class="nav-link {% if request.path == '/medicines' %}active{% endif %}">
+                        <i class="fa-solid fa-pills"></i>
+                        <span>Medicines</span>
+                    </a>
+
+                    <a href="/prescriptions" class="nav-link {% if request.path == '/prescriptions' %}active{% endif %}">
+                        <i class="fa-solid fa-file-prescription"></i>
+                        <span>Prescriptions</span>
+                    </a>
+
+                    <a href="/followups" class="nav-link {% if request.path.startswith('/followups') %}active{% endif %}">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <span>Follow-ups</span>
+                    </a>
+                {% endif %}
+            </nav>
+
+            <!-- Footer -->
+            <div class="sidebar-footer">
+                {% if current_user %}
+                <div class="sidebar-user-block" style="display:flex; align-items:center; gap:10px; padding:4px 0;">
+                    <div class="header-avatar" style="width:32px; height:32px; font-size:0.8rem; background: linear-gradient(135deg, rgba(255,42,95,0.3), rgba(0,210,255,0.3)); border: 1px solid rgba(255,255,255,0.2);">
+                        {{ current_user.display_name[0]|upper }}
+                    </div>
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="font-size:0.82rem; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ current_user.display_name }}</div>
+                        <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color: {% if current_user.role == 'head_doctor' %}#ff2a5f{% elif current_user.role == 'doctor' %}#00d2ff{% elif current_user.role == 'staff' %}#ffb703{% else %}#06d6a0{% endif %};">
+                            {{ current_user.role|replace('_', ' ')|title }}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <p><span class="status-dot"></span> System Online — RBAC ACTIVE</p>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Mobile overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- ── Main ─────────────────────────────────────────────── -->
+        <main class="main-content">
+
+            <!-- Flash Toast Notifications -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="toast-container" id="toast-container">
+                  {% for category, message in messages %}
+                    <div class="toast-notification toast-{{ category }}">
+                      <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-exclamation{% endif %}"></i>
+                      <span>{{ message }}</span>
+                      <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div>
+                        <div class="page-title">{% block page_title %}Dashboard{% endblock %}</div>
+                        <div class="page-subtitle">{% block page_subtitle %}Hospital overview & analytics{% endblock %}</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-time">
+                        <i class="fa-regular fa-clock"></i>
+                        <span id="header-clock">Loading...</span>
+                    </div>
+
+                    {% if current_user %}
+                    <div class="user-profile-badge" style="display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 6px 14px; border-radius: 30px;">
+                        <div style="display: flex; flex-direction: column; text-align: right;">
+                            <span style="font-weight: 600; font-size: 0.88rem; color: #ffffff;">{{ current_user.display_name }}</span>
+                            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+                                         color: {% if current_user.role == 'head_doctor' %}#ff2a5f{% elif current_user.role == 'doctor' %}#00d2ff{% elif current_user.role == 'staff' %}#ffb703{% else %}#06d6a0{% endif %};">
+                                {{ current_user.role|replace('_', ' ')|title }}
+                            </span>
+                        </div>
+                        <div class="header-avatar" style="background: linear-gradient(135deg, rgba(255,45,85,0.2), rgba(0,210,255,0.2)); border: 1px solid rgba(255,255,255,0.2); font-weight: 700; color: #ffffff;">
+                            {{ current_user.display_name[0]|upper }}
+                        </div>
+                        <a href="{{ url_for('logout') }}" class="btn-logout" title="Logout" style="color: #ff453a; font-size: 1.1rem; margin-left: 4px; text-decoration: none; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,69,58,0.15)'" onmouseout="this.style.background='transparent'">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="header-avatar" title="Guest">G</div>
+                    {% endif %}
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- App JavaScript -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

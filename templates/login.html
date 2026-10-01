@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login – MALHAM Hospital Portal</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    <!-- Google Fonts & Font Awesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: var(--bg-dark, #0b0e14);
+            color: var(--text-main, #f0f4f8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(255, 45, 85, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(0, 210, 255, 0.05) 0%, transparent 45%);
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: rgba(18, 22, 31, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 36px 30px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 45, 85, 0.1);
+            backdrop-filter: blur(12px);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .login-brand-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, rgba(255, 45, 85, 0.2), rgba(255, 45, 85, 0.05));
+            border: 1px solid rgba(255, 45, 85, 0.4);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ff2d55;
+            font-size: 1.75rem;
+            margin-bottom: 12px;
+            box-shadow: 0 0 15px rgba(255, 45, 85, 0.3);
+        }
+
+        .login-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0 0 6px 0;
+            color: #ffffff;
+        }
+
+        .login-subtitle {
+            font-size: 0.88rem;
+            color: #8a99ad;
+            margin: 0;
+        }
+
+        .alert-error {
+            background: rgba(255, 69, 58, 0.15);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            color: #ff453a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #a0aec0;
+            margin-bottom: 6px;
+        }
+
+        .input-icon-wrapper {
+            position: relative;
+        }
+
+        .input-icon-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px 12px 40px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            border-color: #ff2d55;
+            box-shadow: 0 0 10px rgba(255, 45, 85, 0.25);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ff2d55, #e00034);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(255, 45, 85, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255, 45, 85, 0.5);
+        }
+
+        .demo-divider {
+            position: relative;
+            text-align: center;
+            margin: 28px 0 20px 0;
+        }
+
+        .demo-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .demo-divider-text {
+            position: relative;
+            background: rgba(18, 22, 31, 1);
+            padding: 0 12px;
+            font-size: 0.78rem;
+            color: #8a99ad;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-demo {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px 8px;
+            color: #e2e8f0;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn-demo:hover {
+            background: rgba(255, 45, 85, 0.12);
+            border-color: rgba(255, 45, 85, 0.3);
+            color: #ffffff;
+        }
+
+        .btn-demo i {
+            font-size: 1rem;
+            width: 22px;
+            text-align: center;
+        }
+
+        .role-badge-mini {
+            display: block;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: normal;
+        }
+
+        .role-head { color: #ff2d55; }
+        .role-doc { color: #00d2ff; }
+        .role-staff { color: #ffb703; }
+        .role-patient { color: #06d6a0; }
+
+        .login-footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.78rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            
+            <div class="login-header">
+                <div class="login-brand-icon">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <h1 class="login-title">MALHAM</h1>
+                <p class="login-subtitle" style="color: #ff2a5f; font-weight: 700; font-size: 0.76rem; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 4px;">ONE PLATFORM. ONE CONNECTED CARE JOURNEY.</p>
+            </div>
+
+            {% if error %}
+            <div class="alert-error">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="username" name="username" class="form-input" placeholder="Enter username" required autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" name="password" class="form-input" placeholder="Enter password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                </button>
+            </form>
+
+            <div class="demo-divider">
+                <span class="demo-divider-text">Quick Demo Login</span>
+            </div>
+
+            <div class="demo-grid">
+                <form method="POST" action="{{ url_for('login') }}">
+                    <input type="hidden" name="demo_role" value="head_doctor">
+                    <button type="submit" class="btn-demo">
+                        <i class="fa-solid fa-user-doctor role-head"></i>
+                        <div>
+                            <strong style="display:block;">Head Doctor</strong>
+                            <span class="role-badge-mini">Dr. Suresh Kumar</span>
+                        </div>
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('login') }}">
+                    <input type="hidden" name="demo_role" value="doctor">
+                    <button type="submit" class="btn-demo">
+                        <i class="fa-solid fa-stethoscope role-doc"></i>
+                        <div>
+                            <strong style="display:block;">Doctor</strong>
+                            <span class="role-badge-mini">Dr. Anita Desai</span>
+                        </div>
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('login') }}">
+                    <input type="hidden" name="demo_role" value="staff">
+                    <button type="submit" class="btn-demo">
+                        <i class="fa-solid fa-user-nurse role-staff"></i>
+                        <div>
+                            <strong style="display:block;">Staff / Nurse</strong>
+                            <span class="role-badge-mini">Nurse Sarah</span>
+                        </div>
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('login') }}">
+                    <input type="hidden" name="demo_role" value="patient">
+                    <button type="submit" class="btn-demo">
+                        <i class="fa-solid fa-hospital-user role-patient"></i>
+                        <div>
+                            <strong style="display:block;">Patient</strong>
+                            <span class="role-badge-mini">Aarav Sharma</span>
+                        </div>
+                    </button>
+                </form>
+            </div>
+
+            <div class="login-footer">
+                <i class="fa-solid fa-shield-halved"></i> Role-Based Access Control Enabled
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

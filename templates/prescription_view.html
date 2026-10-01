@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Prescription {{ rx.rx_code or ('RX-' ~ rx.id) }}{% endblock %}
+{% block page_title %}Patient Prescription Sheet{% endblock %}
+{% block page_subtitle %}{{ rx.rx_code or ('RX-' ~ rx.id) }} · Issued on {{ rx.issued_on[:10] if rx.issued_on else '' }}{% endblock %}
+
+{% block content %}
+<div class="prescription-view-wrapper">
+
+    <!-- Top Action Bar & Language Switcher -->
+    <div class="header-actions-bar flex-between flex-wrap gap-15 mb-20 no-print">
+        <a href="{{ url_for('prescriptions') }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Back to Prescriptions List
+        </a>
+
+        <div class="actions-right-flex flex-align-center gap-15">
+
+            <!-- Language Toggle Switcher -->
+            <div class="lang-toggle-pill-group">
+                <button type="button" class="lang-btn active" id="btn-lang-en" onclick="setLanguage('en')">
+                    🇬🇧 English
+                </button>
+                <button type="button" class="lang-btn" id="btn-lang-hi" onclick="setLanguage('hi')">
+                    🇮🇳 हिंदी (Hindi)
+                </button>
+            </div>
+
+            <!-- Generate Reminders Button -->
+            <form method="POST" action="{{ url_for('generate_reminders_route', prescription_id=rx.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-rose">
+                    <i class="fa-solid fa-bell"></i> Generate Reminders
+                </button>
+            </form>
+
+            <!-- Print Button -->
+            <button type="button" class="btn btn-emerald" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Print Prescription
+            </button>
+
+            <!-- Status Dropdown Form -->
+            <form method="POST" action="{{ url_for('update_prescription_status', prescription_id=rx.id) }}" class="status-change-form">
+                <select name="status" class="form-select status-select-pill status-{{ rx.status }}" onchange="this.form.submit()">
+                    <option value="active" {% if rx.status == 'active' %}selected{% endif %}>🟢 Active Regimen</option>
+                    <option value="completed" {% if rx.status == 'completed' %}selected{% endif %}>🔵 Completed</option>
+                    <option value="cancelled" {% if rx.status == 'cancelled' %}selected{% endif %}>🔴 Cancelled</option>
+                </select>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- ── PATIENT PRESCRIPTION CARD (Dark Theme with Neon Red Accents) ──────── -->
+    <div class="rx-patient-card card animate-in" id="rxPrintableCard">
+
+        <!-- Header Banner -->
+        <div class="rx-header-strip">
+            <div class="brand-hospital-title">
+                <div class="brand-logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                <div>
+                    <h2>MALHAM HEALTHCARE</h2>
+                    <p class="tagline">Connecting Every Layer of Hospital Care</p>
+                </div>
+            </div>
+
+            <div class="rx-code-box">
+                <div class="rx-badge-neon"><i class="fa-solid fa-file-prescription"></i> {{ rx.rx_code or ('RX-' ~ rx.id) }}</div>
+                <div class="rx-date-label">Issued: <strong>{{ rx.issued_on[:10] if rx.issued_on else '' }}</strong></div>
+            </div>
+        </div>
+
+        <div class="card-body p-25">
+
+            <!-- Patient & Doctor Metadata Grid -->
+            <div class="rx-meta-grid mb-25">
+
+                <!-- Patient Box -->
+                <div class="meta-box patient-meta-box">
+                    <div class="box-label"><i class="fa-solid fa-hospital-user"></i> <span class="lang-text" data-en="PATIENT INFORMATION" data-hi="मरीज की जानकारी">PATIENT INFORMATION</span></div>
+                    <h3 class="patient-name">{{ rx.patient_name }}</h3>
+                    <div class="meta-details-row">
+                        <span><strong>Code:</strong> {{ rx.patient_code or ('P-' ~ (rx.patient_id + 1000)) }}</span>
+                        <span><strong>Age/Gender:</strong> {{ rx.age }} Yrs / {{ rx.gender }}</span>
+                        <span><strong>Blood Group:</strong> <span class="badge-blood-inline">{{ rx.blood_group or 'N/A' }}</span></span>
+                        {% if rx.phone %}<span><strong>Phone:</strong> {{ rx.phone }}</span>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Doctor Box -->
+                <div class="meta-box doctor-meta-box">
+                    <div class="box-label"><i class="fa-solid fa-user-doctor"></i> <span class="lang-text" data-en="PRESCRIBING DOCTOR" data-hi="डॉक्टर की जानकारी">PRESCRIBING DOCTOR</span></div>
+                    <h3 class="doctor-name">{{ rx.doctor_name or 'Attending Staff Doctor' }}</h3>
+                    <div class="meta-details-row">
+                        <span><strong>Specialization:</strong> {{ rx.specialization or 'General Physician' }}</span>
+                        {% if rx.doctor_phone %}<span><strong>Contact:</strong> {{ rx.doctor_phone }}</span>{% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Diagnosis & General Advice Box (If entered) -->
+            {% if rx.diagnosis_note or rx.general_advice %}
+            <div class="rx-clinical-box mb-25">
+                {% if rx.diagnosis_note %}
+                <div class="clinical-item">
+                    <div class="clinical-label"><i class="fa-solid fa-clipboard-check text-rose-500"></i> <span class="lang-text" data-en="Diagnosis Note" data-hi="निदान टिप्पणी">Diagnosis Note</span>:</div>
+                    <div class="clinical-value">{{ rx.diagnosis_note }}</div>
+                </div>
+                {% endif %}
+
+                {% if rx.general_advice %}
+                <div class="clinical-item mt-10">
+                    <div class="clinical-label"><i class="fa-solid fa-lightbulb text-amber-500"></i> <span class="lang-text" data-en="Doctor's General Advice" data-hi="डॉक्टर की सामान्य सलाह">Doctor's General Advice</span>:</div>
+                    <div class="clinical-value">{{ rx.general_advice }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- ── PRESCRIBED MEDICINES CARDS ──────────────────────────────── -->
+            <div class="rx-section-title mb-15">
+                <i class="fa-solid fa-pills text-rose-500"></i> 
+                <span class="lang-text" data-en="Prescribed Medications & Daily Schedule" data-hi="निर्धारित दवाएं और दैनिक समय सारणी">Prescribed Medications & Daily Schedule</span>
+            </div>
+
+            <div class="rx-medications-list gap-20">
+                {% for item in items %}
+                <div class="rx-med-card card">
+                    <div class="med-card-header flex-between flex-align-center">
+                        <div class="med-title-group">
+                            <h4 class="med-name">
+                                {{ item.medicine_name }} 
+                                {% if item.strength %}<span class="med-strength">({{ item.strength }})</span>{% endif %}
+                            </h4>
+                            {% if item.generic_name %}
+                            <div class="med-generic">Generic: {{ item.generic_name }} · Form: {{ item.form|capitalize }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="med-timing-badge">
+                            <i class="fa-solid fa-utensils"></i> 
+                            <span class="lang-text" data-en="{{ item.food_timing_en }}" data-hi="{{ item.food_timing_hi }}">{{ item.food_timing_en }}</span>
+                        </div>
+                    </div>
+
+                    <div class="med-card-body">
+
+                        <!-- 3 Slot Big Dosage Cards: Morning / Afternoon / Night -->
+                        <div class="dosage-slots-grid">
+                            {% for slot in item.slots %}
+                            <div class="dosage-slot-card {% if slot.active %}slot-active{% else %}slot-inactive{% endif %}">
+                                <div class="slot-header flex-align-center gap-6">
+                                    {% if slot.label == 'Morning' %}
+                                    <i class="fa-solid fa-sun icon-morning"></i>
+                                    {% elif slot.label == 'Afternoon' %}
+                                    <i class="fa-solid fa-cloud-sun icon-afternoon"></i>
+                                    {% else %}
+                                    <i class="fa-solid fa-moon icon-night"></i>
+                                    {% endif %}
+
+                                    <span class="slot-label-text lang-text" data-en="{{ slot.label }}" data-hi="{{ slot.label_hi }}">{{ slot.label }}</span>
+                                    <span class="slot-time-tag">({{ slot.time }})</span>
+                                </div>
+
+                                <div class="slot-dose-value font-bold">
+                                    <span class="lang-text" data-en="{{ slot.readable_en }}" data-hi="{{ slot.readable_hi }}">{{ slot.readable_en }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Duration & Special Instructions Row -->
+                        <div class="med-footer-row flex-between flex-align-center flex-wrap gap-10 mt-15">
+                            <div class="med-duration-tag">
+                                <i class="fa-solid fa-clock"></i> <span class="lang-text" data-en="Duration" data-hi="अवधि">Duration</span>: 
+                                <strong>{{ item.duration_days }} <span class="lang-text" data-en="Days" data-hi="दिन">Days</span></strong>
+                            </div>
+
+                            {% if item.special_instructions %}
+                            <div class="med-instruction-tag">
+                                <i class="fa-solid fa-circle-info text-rose-500"></i> <span class="lang-text" data-en="Instructions" data-hi="निर्देश">Instructions</span>: 
+                                <span>{{ item.special_instructions }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Follow-up Box -->
+            {% if rx.follow_up_date %}
+            <div class="rx-followup-box mt-25">
+                <div class="flex-align-center gap-10">
+                    <i class="fa-solid fa-calendar-check text-rose-500 font-xl"></i>
+                    <div>
+                        <div class="font-bold text-rose-500"><span class="lang-text" data-en="NEXT FOLLOW-UP VISIT DUE" data-hi="अगली मुलाकात (फॉलो-अप) की तारीख">NEXT FOLLOW-UP VISIT DUE</span></div>
+                        <div class="followup-date-value font-xl font-bold">{{ rx.follow_up_date }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- MANDATORY LEGAL / DOCTOR DISCLAIMER NOTE -->
+            <div class="rx-disclaimer-note mt-30">
+                <i class="fa-solid fa-shield-halved text-rose-500"></i>
+                <span class="lang-text" 
+                      data-en="Follow your doctor's instructions. This sheet only explains what your doctor prescribed." 
+                      data-hi="अपने डॉक्टर के निर्देशों का पालन करें। यह पर्ची केवल यह स्पष्ट करती है कि आपके डॉक्टर ने क्या लिखा है।">
+                    Follow your doctor's instructions. This sheet only explains what your doctor prescribed.
+                </span>
+            </div>
+
+        </div>
+
+        <!-- Footer Seal Strip -->
+        <div class="rx-footer-strip flex-between flex-align-center">
+            <div class="text-xs text-muted">
+                Generated via MALHAM Smart Prescriptions · Authentic Hospital Record
+            </div>
+            <div class="doctor-signature-box text-right">
+                <div class="sig-line">___________________________</div>
+                <div class="text-xs font-semibold mt-4">{{ rx.doctor_name or 'Attending Doctor' }}</div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Language Toggle Script -->
+<script>
+function setLanguage(lang) {
+    const elements = document.querySelectorAll('.lang-text');
+    elements.forEach(el => {
+        if (lang === 'hi') {
+            const hiText = el.getAttribute('data-hi');
+            if (hiText) el.textContent = hiText;
+        } else {
+            const enText = el.getAttribute('data-en');
+            if (enText) el.textContent = enText;
+        }
+    });
+
+    const btnEn = document.getElementById('btn-lang-en');
+    const btnHi = document.getElementById('btn-lang-hi');
+
+    if (btnEn && btnHi) {
+        if (lang === 'hi') {
+            btnEn.classList.remove('active');
+            btnHi.classList.add('active');
+        } else {
+            btnHi.classList.remove('active');
+            btnEn.classList.add('active');
+        }
+    }
+}
+</script>
+{% endblock %}

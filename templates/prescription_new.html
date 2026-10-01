@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block title %}Issue Smart Prescription{% endblock %}
+{% block page_title %}Issue Smart Prescription{% endblock %}
+{% block page_subtitle %}Create a new doctor-entered prescription with live dosage clarification{% endblock %}
+
+{% block content %}
+<div class="prescription-form-container">
+
+    <!-- Top Navigation Bar -->
+    <div class="header-actions-bar mb-15">
+        <a href="{{ url_for('prescriptions') }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Back to Prescriptions
+        </a>
+    </div>
+
+    <!-- Core Principle Banner -->
+    <div class="card card-notice-banner mb-20">
+        <div class="card-body flex-align-center gap-15">
+            <div class="banner-icon">
+                <i class="fa-solid fa-shield-halved text-rose-500 font-xl"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-rose-500 mb-2">Doctor & Staff Verification Principle</h4>
+                <p class="text-xs text-muted">
+                    This module strictly <strong>CLARIFIES</strong> what a doctor enters into the form. It does <strong>NOT</strong> auto-diagnose, suggest medicines, or generate prescriptions on its own. All items are prescribed explicitly by attending hospital staff.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert if any -->
+    {% if request.args.get('error') %}
+    <div class="alert alert-danger mb-20 animate-in">
+        <i class="fa-solid fa-triangle-exclamation"></i> {{ request.args.get('error') }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('add_prescription') }}" id="prescriptionForm" class="card animate-in">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-pen-to-square text-rose-600"></i> Prescription Details</h3>
+        </div>
+
+        <div class="card-body">
+
+            <!-- ── Patient & Doctor Selection Header ──────────────────────── -->
+            <div class="form-row mb-15">
+
+                <!-- Patient Select -->
+                <div class="form-group col-4">
+                    <label class="form-label required">Select Patient</label>
+                    <select name="patient_id" id="patient_id_select" required class="form-select" onchange="onPatientSelectChange(this)">
+                        <option value="">-- Choose Patient --</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}" {% if selected_patient_id and selected_patient_id == p.id %}selected{% endif %}>
+                            {{ p.name }} ({{ p.patient_code or ('P-' ~ (p.id + 1000)) }}) · {{ p.age }}y {{ p.gender }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Attending Doctor Select -->
+                <div class="form-group col-4">
+                    <label class="form-label required">Attending Doctor</label>
+                    <select name="doctor_id" required class="form-select">
+                        <option value="">-- Choose Attending Doctor --</option>
+                        {% for d in doctors %}
+                        <option value="{{ d.id }}">{{ d.name }} ({{ d.specialization }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Linked Visit (Optional) -->
+                <div class="form-group col-4">
+                    <label class="form-label">Linked Visit (Optional)</label>
+                    <select name="visit_id" class="form-select">
+                        <option value="">-- Standalone Consultation --</option>
+                        {% for v in patient_visits %}
+                        <option value="{{ v.id }}">Visit #{{ v.id }} ({{ v.visit_date }} - {{ v.visit_type|upper }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="form-row mb-20">
+                <!-- Diagnosis Note -->
+                <div class="form-group col-6">
+                    <label class="form-label">Doctor's Diagnosis Note / Findings</label>
+                    <textarea name="diagnosis_note" class="form-control" rows="2" placeholder="e.g. Acute Hypertensive Episode & Mild Gastritis..."></textarea>
+                </div>
+
+                <!-- General Advice -->
+                <div class="form-group col-4">
+                    <label class="form-label">General Advice & Lifestyle Guidelines</label>
+                    <textarea name="general_advice" class="form-control" rows="2" placeholder="e.g. Low salt diet, light walking daily, avoid stress..."></textarea>
+                </div>
+
+                <!-- Follow-up Date -->
+                <div class="form-group col-2">
+                    <label class="form-label">Follow-up Date</label>
+                    <input type="date" name="follow_up_date" class="form-control" min="{{ today_date }}">
+                </div>
+            </div>
+
+            <hr class="section-divider mb-20">
+
+            <!-- ── Dynamic Prescribed Medicines Section ────────────────────── -->
+            <div class="section-header-flex flex-between flex-align-center mb-15">
+                <div>
+                    <h3 class="font-bold"><i class="fa-solid fa-pills text-rose-500"></i> Prescribed Medicines & Dosage Patterns</h3>
+                    <p class="text-xs text-muted">Dosage pattern format: <strong>Morning - Afternoon - Night</strong> (e.g. 1-0-1, 0.5-0-1, 1-1-1)</p>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-rose-outline" onclick="addMedicineRow()">
+                    <i class="fa-solid fa-plus"></i> Add Another Medicine
+                </button>
+            </div>
+
+            <!-- Rows Container -->
+            <div id="medicineRowsContainer" class="medicine-rows-list">
+
+                <!-- Default Medicine Row 1 -->
+                <div class="medicine-row-card card mb-15" data-row-idx="0">
+                    <div class="card-body">
+
+                        <div class="row-top-flex flex-between mb-10">
+                            <span class="row-number-badge font-bold text-xs"><i class="fa-solid fa-capsules"></i> Medicine #1</span>
+                            <button type="button" class="btn-remove-row text-rose-500" onclick="removeMedicineRow(this)" title="Remove medicine" style="display:none;">
+                                <i class="fa-solid fa-trash-can"></i> Remove
+                            </button>
+                        </div>
+
+                        <div class="form-row">
+                            <!-- Medicine Select -->
+                            <div class="form-group col-4">
+                                <label class="form-label required text-xs font-semibold">Select Medicine</label>
+                                <select name="medicine_id[]" required class="form-select med-select" onchange="onMedicineChange(this)">
+                                    <option value="">-- Choose Medicine --</option>
+                                    {% for m in medicines %}
+                                    <option value="{{ m.id }}" data-form="{{ m.form }}" data-stock="{{ m.quantity }}">
+                                        {{ m.name }} {% if m.strength %}({{ m.strength }}){% endif %} - Stock: {{ m.quantity }} {{ m.unit or 'units' }} {% if m.quantity == 0 %}⚠️ [OUT OF STOCK]{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="stock-warning-note text-xs text-rose-500 mt-4" style="display:none;">
+                                    <i class="fa-solid fa-circle-exclamation"></i> Warning: Item has 0 stock. Proceeding will prescribe anyway.
+                                </div>
+                            </div>
+
+                            <!-- Dosage Pattern -->
+                            <div class="form-group col-2">
+                                <label class="form-label required text-xs font-semibold">Dosage Pattern</label>
+                                <input type="text" name="dosage_pattern[]" value="1-0-1" required class="form-control pattern-input" placeholder="e.g. 1-0-1" oninput="updateLivePreview(this)">
+                                <span class="text-xs text-muted">Morning-Afternoon-Night</span>
+                            </div>
+
+                            <!-- Food Timing -->
+                            <div class="form-group col-2">
+                                <label class="form-label text-xs font-semibold">Food Timing</label>
+                                <select name="food_timing[]" class="form-select">
+                                    <option value="after food" selected>After food ( खाने के बाद )</option>
+                                    <option value="before food">Before food ( खाने से पहले )</option>
+                                    <option value="with food">With food ( खाने के साथ )</option>
+                                    <option value="any time">Any time ( किसी भी समय )</option>
+                                </select>
+                            </div>
+
+                            <!-- Duration (Days) -->
+                            <div class="form-group col-1">
+                                <label class="form-label text-xs font-semibold">Duration</label>
+                                <input type="number" name="duration_days[]" value="5" min="1" max="180" class="form-control">
+                                <span class="text-xs text-muted">Days</span>
+                            </div>
+
+                            <!-- Special Instructions -->
+                            <div class="form-group col-3">
+                                <label class="form-label text-xs font-semibold">Special Instructions</label>
+                                <input type="text" name="special_instructions[]" class="form-control" placeholder="e.g. Take with warm water / milk">
+                            </div>
+                        </div>
+
+                        <!-- LIVE PREVIEW BOX -->
+                        <div class="live-dosage-preview mt-10">
+                            <div class="preview-label font-semibold text-xs text-rose-500 mb-6">
+                                <i class="fa-solid fa-eye"></i> Patient Clarification Live Preview:
+                            </div>
+                            <div class="preview-slots-flex gap-15">
+                                <!-- Rendered dynamically by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Add Row Button at Bottom -->
+            <div class="mt-15 mb-20 text-center">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="addMedicineRow()">
+                    <i class="fa-solid fa-plus"></i> Add Another Medicine Row
+                </button>
+            </div>
+
+            <hr class="section-divider mb-20">
+
+            <!-- Submit Buttons -->
+            <div class="flex-between flex-align-center">
+                <a href="{{ url_for('prescriptions') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-lg btn-rose">
+                    <i class="fa-solid fa-check"></i> Issue & Generate Patient Prescription
+                </button>
+            </div>
+
+        </div>
+    </form>
+
+</div>
+
+<!-- JavaScript for Dynamic Rows & Live Dosage Preview -->
+<script>
+const FORM_UNITS = {
+    'tablet': 'tablet',
+    'capsule': 'capsule',
+    'injection': 'injection',
+    'syrup': 'spoon',
+    'ointment': 'application',
+    'inhaler': 'puff'
+};
+
+function parsePattern(patternStr) {
+    if (!patternStr || typeof patternStr !== 'string') return null;
+    const parts = patternStr.trim().split('-');
+    if (parts.length !== 3) return null;
+
+    const values = [];
+    for (let p of parts) {
+        p = p.trim();
+        if (p === '1/2' || p === '½') {
+            values.push(0.5);
+        } else {
+            const v = parseFloat(p);
+            if (isNaN(v) || v < 0) return null;
+            values.push(v);
+        }
+    }
+    return values;
+}
+
+function updateLivePreview(inputEl) {
+    const rowCard = inputEl.closest('.medicine-row-card');
+    const previewContainer = rowCard.querySelector('.preview-slots-flex');
+    const medSelect = rowCard.querySelector('.med-select');
+    const selectedOpt = medSelect.options[medSelect.selectedIndex];
+    const formType = (selectedOpt && selectedOpt.dataset.form) ? selectedOpt.dataset.form.toLowerCase() : 'tablet';
+    const unitName = FORM_UNITS[formType] || 'tablet';
+
+    const patternVal = inputEl.value;
+    const parsed = parsePattern(patternVal);
+
+    if (!parsed) {
+        previewContainer.innerHTML = `
+            <div class="preview-error-badge text-xs text-rose-500 font-medium">
+                <i class="fa-solid fa-circle-xmark"></i> Invalid pattern format. Must be 3 numbers separated by dashes (e.g. 1-0-1 or 0.5-0-1).
+            </div>
+        `;
+        return;
+    }
+
+    const labels = [
+        { label: 'Morning', icon: 'fa-sun text-amber-500' },
+        { label: 'Afternoon', icon: 'fa-cloud-sun text-orange-500' },
+        { label: 'Night', icon: 'fa-moon text-violet-500' }
+    ];
+
+    let html = '';
+    labels.forEach((slot, idx) => {
+        const qty = parsed[idx];
+        const active = qty > 0;
+        let qtyText = '';
+
+        if (qty === 0.5) qtyText = '0.5';
+        else if (qty === Math.floor(qty)) qtyText = qty.toString();
+        else qtyText = qty.toString();
+
+        const doseLabel = active ? `${qtyText} ${unitName}${qty > 1 ? 's' : ''}` : `No ${unitName}`;
+
+        html += `
+            <div class="preview-slot-pill ${active ? 'active-slot' : 'inactive-slot'}">
+                <i class="fa-solid ${slot.icon}"></i>
+                <span class="slot-name">${slot.label}:</span>
+                <strong class="${active ? 'text-rose-600' : 'text-muted'}">${doseLabel}</strong>
+            </div>
+        `;
+    });
+
+    previewContainer.innerHTML = html;
+}
+
+function onMedicineChange(selectEl) {
+    const rowCard = selectEl.closest('.medicine-row-card');
+    const selectedOpt = selectEl.options[selectEl.selectedIndex];
+    const stockVal = selectedOpt ? parseInt(selectedOpt.dataset.stock || '1') : 1;
+    const warnBox = rowCard.querySelector('.stock-warning-note');
+
+    if (stockVal === 0) {
+        warnBox.style.display = 'block';
+    } else {
+        warnBox.style.display = 'none';
+    }
+
+    const patternInput = rowCard.querySelector('.pattern-input');
+    updateLivePreview(patternInput);
+}
+
+function addMedicineRow() {
+    const container = document.getElementById('medicineRowsContainer');
+    const rows = container.querySelectorAll('.medicine-row-card');
+    const nextIdx = rows.length;
+
+    const firstRow = rows[0];
+    const clone = firstRow.cloneNode(true);
+
+    clone.setAttribute('data-row-idx', nextIdx);
+    clone.querySelector('.row-number-badge').innerHTML = `<i class="fa-solid fa-capsules"></i> Medicine #${nextIdx + 1}`;
+    
+    // Reset values
+    const medSelect = clone.querySelector('.med-select');
+    medSelect.selectedIndex = 0;
+    clone.querySelector('.stock-warning-note').style.display = 'none';
+
+    const patternInput = clone.querySelector('.pattern-input');
+    patternInput.value = '1-0-1';
+
+    const instrInput = clone.querySelector('input[name="special_instructions[]"]');
+    if (instrInput) instrInput.value = '';
+
+    // Show remove button
+    const removeBtn = clone.querySelector('.btn-remove-row');
+    removeBtn.style.display = 'inline-block';
+
+    container.appendChild(clone);
+
+    // Initial update preview for new row
+    updateLivePreview(patternInput);
+    updateRowRemoveButtons();
+}
+
+function removeMedicineRow(btnEl) {
+    const rowCard = btnEl.closest('.medicine-row-card');
+    const container = document.getElementById('medicineRowsContainer');
+    if (container.querySelectorAll('.medicine-row-card').length > 1) {
+        rowCard.remove();
+        updateRowRemoveButtons();
+        reindexRows();
+    }
+}
+
+function updateRowRemoveButtons() {
+    const container = document.getElementById('medicineRowsContainer');
+    const rows = container.querySelectorAll('.medicine-row-card');
+    rows.forEach((row, idx) => {
+        const removeBtn = row.querySelector('.btn-remove-row');
+        if (rows.length > 1) {
+            removeBtn.style.display = 'inline-block';
+        } else {
+            removeBtn.style.display = 'none';
+        }
+    });
+}
+
+function reindexRows() {
+    const container = document.getElementById('medicineRowsContainer');
+    const rows = container.querySelectorAll('.medicine-row-card');
+    rows.forEach((row, idx) => {
+        row.setAttribute('data-row-idx', idx);
+        row.querySelector('.row-number-badge').innerHTML = `<i class="fa-solid fa-capsules"></i> Medicine #${idx + 1}`;
+    });
+}
+
+function onPatientSelectChange(selectEl) {
+    const patientId = selectEl.value;
+    if (patientId) {
+        // Option to reload visit dropdown if needed, or form operates standalone
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial live preview setup
+    document.querySelectorAll('.pattern-input').forEach(input => {
+        updateLivePreview(input);
+    });
+});
+</script>
+{% endblock %}

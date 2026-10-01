@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+
+{% block title %}Doctors Management{% endblock %}
+{% block page_title %}Doctors & Medical Staff{% endblock %}
+{% block page_subtitle %}Manage doctor roster, shift attendance, and leave approvals{% endblock %}
+
+{% block content %}
+<div class="doctors-container">
+
+    <!-- ── Top Actions & Stats Row ─────────────────────────────── -->
+    <div class="header-actions-bar">
+        <div class="stats-mini-group">
+            <div class="stat-pill sp-total">
+                <i class="fa-solid fa-user-doctor"></i>
+                <span><strong>{{ doctors_total }}</strong> Total</span>
+            </div>
+            <div class="stat-pill sp-available">
+                <i class="fa-solid fa-circle-check"></i>
+                <span><strong>{{ doctors_available }}</strong> Available</span>
+            </div>
+            <div class="stat-pill sp-busy">
+                <i class="fa-solid fa-stethoscope"></i>
+                <span><strong>{{ doctors_busy }}</strong> Busy</span>
+            </div>
+            <div class="stat-pill sp-offduty">
+                <i class="fa-solid fa-moon"></i>
+                <span><strong>{{ doctors_offduty }}</strong> Off Duty</span>
+            </div>
+            <div class="stat-pill sp-onleave">
+                <i class="fa-solid fa-plane-departure"></i>
+                <span><strong>{{ doctors_onleave }}</strong> On Leave</span>
+            </div>
+        </div>
+
+        <div class="actions-buttons">
+            {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
+            <button class="btn btn-secondary" onclick="openModal('requestLeaveModal')">
+                <i class="fa-solid fa-calendar-plus"></i> Request Leave
+            </button>
+            {% endif %}
+            {% if current_user and current_user.role in ['head_doctor', 'staff'] %}
+            <button class="btn btn-primary" onclick="openModal('addDoctorModal')">
+                <i class="fa-solid fa-plus"></i> Register Doctor
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── Navigation Tabs ─────────────────────────────────────── -->
+    <div class="nav-tabs-wrapper">
+        <div class="nav-tabs">
+            <a href="{{ url_for('doctors', tab='roster') }}" class="tab-item {% if active_tab == 'roster' %}active{% endif %}">
+                <i class="fa-solid fa-address-book"></i> Doctor Roster
+            </a>
+            <a href="{{ url_for('doctors', tab='attendance', att_date=att_date) }}" class="tab-item {% if active_tab == 'attendance' %}active{% endif %}">
+                <i class="fa-solid fa-clipboard-user"></i> Attendance Tracker
+            </a>
+            {% if current_user and current_user.role != 'staff' %}
+            <a href="{{ url_for('doctors', tab='leaves') }}" class="tab-item {% if active_tab == 'leaves' %}active{% endif %}">
+                <i class="fa-solid fa-file-signature"></i> Leave Approvals
+                {% if pending_leaves_count > 0 %}
+                <span class="tab-badge-count">{{ pending_leaves_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- TAB 1: DOCTOR ROSTER                                      -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    {% if active_tab == 'roster' %}
+    <div class="tab-content animate-in">
+        
+        <!-- Roster Filter Bar -->
+        <form method="GET" action="{{ url_for('doctors') }}" class="filter-card">
+            <input type="hidden" name="tab" value="roster">
+            <div class="filter-row">
+                <div class="filter-field search-field">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Search doctor name, email, phone..." class="form-control">
+                </div>
+
+                <div class="filter-field">
+                    <select name="specialization" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Specializations</option>
+                        {% for spec in specializations %}
+                        <option value="{{ spec }}" {% if spec_filter == spec %}selected{% endif %}>{{ spec }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="available" {% if status_filter == 'available' %}selected{% endif %}>Available</option>
+                        <option value="busy" {% if status_filter == 'busy' %}selected{% endif %}>Busy</option>
+                        <option value="off-duty" {% if status_filter == 'off-duty' %}selected{% endif %}>Off Duty</option>
+                        <option value="on-leave" {% if status_filter == 'on-leave' %}selected{% endif %}>On Leave</option>
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <select name="shift" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Shifts</option>
+                        <option value="morning" {% if shift_filter == 'morning' %}selected{% endif %}>Morning</option>
+                        <option value="evening" {% if shift_filter == 'evening' %}selected{% endif %}>Evening</option>
+                        <option value="night" {% if shift_filter == 'night' %}selected{% endif %}>Night</option>
+                    </select>
+                </div>
+
+                {% if search_query or spec_filter or status_filter or shift_filter %}
+                <a href="{{ url_for('doctors', tab='roster') }}" class="btn btn-ghost" title="Reset Filters">
+                    <i class="fa-solid fa-xmark"></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Doctors Roster Grid -->
+        {% if doctors %}
+        <div class="doctors-grid">
+            {% for doc in doctors %}
+            <div class="doctor-card card-status-{{ doc.status }}">
+                <div class="doc-card-header">
+                    <div class="doc-avatar">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div class="doc-main-info">
+                        <h3 class="doc-name">{{ doc.name }}</h3>
+                        <span class="doc-spec">{{ doc.specialization }}</span>
+                    </div>
+                    <div class="doc-status-badge badge-{{ doc.status }}">
+                        <i class="fa-solid fa-circle"></i> {{ doc.status|capitalize }}
+                    </div>
+                </div>
+
+                <div class="doc-card-body">
+                    <div class="doc-detail-item">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>Shift: <strong class="text-capitalize">{{ doc.shift }}</strong></span>
+                    </div>
+                    <div class="doc-detail-item">
+                        <i class="fa-solid fa-phone"></i>
+                        <span>{{ doc.phone or 'N/A' }}</span>
+                    </div>
+                    <div class="doc-detail-item">
+                        <i class="fa-solid fa-envelope"></i>
+                        <span>{{ doc.email or 'N/A' }}</span>
+                    </div>
+                </div>
+
+                {% if current_user and current_user.role in ['head_doctor', 'staff'] %}
+                <div class="doc-card-footer">
+                    <!-- Quick Status Selector -->
+                    <form method="POST" action="{{ url_for('update_doctor_status', doctor_id=doc.id) }}" class="quick-status-form">
+                        <select name="status" class="form-select-sm" onchange="this.form.submit()">
+                            <option value="available" {% if doc.status == 'available' %}selected{% endif %}>Set Available</option>
+                            <option value="busy" {% if doc.status == 'busy' %}selected{% endif %}>Set Busy</option>
+                            <option value="off-duty" {% if doc.status == 'off-duty' %}selected{% endif %}>Set Off-Duty</option>
+                            <option value="on-leave" {% if doc.status == 'on-leave' %}selected{% endif %}>Set On-Leave</option>
+                        </select>
+                    </form>
+
+                    <button class="btn-icon" onclick='openEditDoctorModal({{ doc|tojson }})' title="Edit Doctor Details">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-user-doctor-hair"></i>
+            <h3>No Doctors Found</h3>
+            <p>No medical staff matches your current filter criteria.</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- TAB 2: ATTENDANCE TRACKER                                 -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    {% if active_tab == 'attendance' %}
+    <div class="tab-content animate-in">
+        
+        <div class="card">
+            <div class="card-header flex-between">
+                <div>
+                    <h3><i class="fa-solid fa-clipboard-user"></i> Shift Attendance</h3>
+                    <p class="subtitle">Record daily attendance, check-in, and check-out times</p>
+                </div>
+
+                <form method="GET" action="{{ url_for('doctors') }}" class="date-picker-form">
+                    <input type="hidden" name="tab" value="attendance">
+                    <label for="att_date" class="date-label"><i class="fa-solid fa-calendar"></i> Date:</label>
+                    <input type="date" id="att_date" name="att_date" value="{{ att_date }}" onchange="this.form.submit()" class="form-control-sm">
+                    {% if att_date == today_date %}
+                    <span class="badge-today">Today</span>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Doctor</th>
+                            <th>Specialization</th>
+                            <th>Shift</th>
+                            <th>Status ({{ att_date }})</th>
+                            <th>Check-in</th>
+                            <th>Check-out</th>
+                            <th>Notes</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in attendance_list %}
+                        <tr>
+                            <td class="font-semibold">{{ row.doctor_name }}</td>
+                            <td>{{ row.specialization }}</td>
+                            <td><span class="badge-shift shift-{{ row.shift }}">{{ row.shift|capitalize }}</span></td>
+                            <td>
+                                {% set st = row.att_status or 'Not Marked' %}
+                                <span class="badge-att status-att-{{ row.att_status or 'none' }}">
+                                    <i class="fa-solid fa-circle"></i> {{ st|capitalize }}
+                                </span>
+                            </td>
+                            <td>{{ row.check_in or '—' }}</td>
+                            <td>{{ row.check_out or '—' }}</td>
+                            <td class="text-muted">{{ row.notes or '—' }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick='openMarkAttendanceModal({{ row.doctor_id }}, "{{ row.doctor_name|e }}", "{{ att_date }}", "{{ row.att_status or "present" }}", "{{ row.check_in or "" }}", "{{ row.check_out or "" }}", "{{ row.notes or "" }}")'>
+                                    <i class="fa-solid fa-pen"></i> Mark
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- TAB 3: LEAVE APPROVALS                                    -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    {% if active_tab == 'leaves' %}
+    <div class="tab-content animate-in">
+        
+        <div class="card">
+            <div class="card-header flex-between">
+                <div>
+                    <h3><i class="fa-solid fa-file-signature"></i> Doctor Leave Requests</h3>
+                    <p class="subtitle">Review and manage doctor leave applications</p>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="openModal('requestLeaveModal')">
+                    <i class="fa-solid fa-plus"></i> New Leave Request
+                </button>
+            </div>
+
+            <div class="card-body p-0">
+                {% if leave_requests %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Doctor</th>
+                            <th>Leave Type</th>
+                            <th>Duration</th>
+                            <th>Reason</th>
+                            <th>Applied On</th>
+                            <th>Status</th>
+                            <th>Review / Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave in leave_requests %}
+                        <tr class="leave-row-{{ leave.status }}">
+                            <td>
+                                <div class="font-semibold">{{ leave.doctor_name }}</div>
+                                <div class="text-xs text-muted">{{ leave.specialization }}</div>
+                            </td>
+                            <td>
+                                <span class="badge-leave-type type-{{ leave.leave_type }}">
+                                    {{ leave.leave_type|capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                <div><strong>{{ leave.start_date }}</strong> to <strong>{{ leave.end_date }}</strong></div>
+                            </td>
+                            <td class="max-w-xs">{{ leave.reason or 'No reason specified' }}</td>
+                            <td class="text-xs text-muted">{{ leave.applied_on[:10] if leave.applied_on else '—' }}</td>
+                            <td>
+                                <span class="badge-leave-status status-{{ leave.status }}">
+                                    {% if leave.status == 'pending' %}
+                                    <i class="fa-solid fa-hourglass-half"></i> Pending
+                                    {% elif leave.status == 'approved' %}
+                                    <i class="fa-solid fa-check"></i> Approved
+                                    {% else %}
+                                    <i class="fa-solid fa-xmark"></i> Rejected
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if leave.status == 'pending' %}
+                                    {% if current_user and current_user.role == 'head_doctor' %}
+                                    <div class="action-btn-group">
+                                        <form method="POST" action="{{ url_for('review_leave', leave_id=leave.id) }}" style="display:inline;">
+                                            <input type="hidden" name="action" value="approve">
+                                            <button type="submit" class="btn btn-xs btn-success" title="Approve Leave">
+                                                <i class="fa-solid fa-check"></i> Approve
+                                            </button>
+                                        </form>
+
+                                        <form method="POST" action="{{ url_for('review_leave', leave_id=leave.id) }}" style="display:inline;">
+                                            <input type="hidden" name="action" value="reject">
+                                            <button type="submit" class="btn btn-xs btn-danger" title="Reject Leave">
+                                                <i class="fa-solid fa-xmark"></i> Reject
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-xs text-muted"><i class="fa-solid fa-clock"></i> Awaiting Head Doctor Review</span>
+                                    {% endif %}
+                                {% else %}
+                                <div class="text-xs text-muted">
+                                    Reviewed by {{ leave.reviewed_by or 'Admin' }}
+                                    {% if leave.reviewer_notes %}
+                                    <br><em>"{{ leave.reviewer_notes }}"</em>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <h3>No Leave Requests</h3>
+                    <p>There are currently no doctor leave requests submitted.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: ADD DOCTOR                                              -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="addDoctorModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-user-plus"></i> Register New Doctor</h3>
+            <button class="modal-close" onclick="closeModal('addDoctorModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_doctor') }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" name="name" required placeholder="e.g. Dr. Ananya Sharma" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>Specialization *</label>
+                    <input type="text" name="specialization" required placeholder="e.g. Cardiology, Pediatrics, General" class="form-control" list="specialization-list">
+                    <datalist id="specialization-list">
+                        {% for spec in specializations %}
+                        <option value="{{ spec }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Phone Number</label>
+                        <input type="text" name="phone" placeholder="e.g. 9876543210" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Email Address</label>
+                        <input type="email" name="email" placeholder="doctor@malham.in" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Initial Status</label>
+                        <select name="status" class="form-select">
+                            <option value="available">Available</option>
+                            <option value="busy">Busy</option>
+                            <option value="off-duty">Off Duty</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Shift Schedule</label>
+                        <select name="shift" class="form-select">
+                            <option value="morning">Morning (8 AM - 4 PM)</option>
+                            <option value="evening">Evening (2 PM - 10 PM)</option>
+                            <option value="night">Night (10 PM - 6 AM)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addDoctorModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Register Doctor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: EDIT DOCTOR                                             -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="editDoctorModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-user-pen"></i> Edit Doctor Details</h3>
+            <button class="modal-close" onclick="closeModal('editDoctorModal')">&times;</button>
+        </div>
+        <form id="editDoctorForm" method="POST" action="">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="edit_name" name="name" required class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>Specialization *</label>
+                    <input type="text" id="edit_specialization" name="specialization" required class="form-control">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Phone Number</label>
+                        <input type="text" id="edit_phone" name="phone" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Email Address</label>
+                        <input type="email" id="edit_email" name="email" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Status</label>
+                        <select id="edit_status" name="status" class="form-select">
+                            <option value="available">Available</option>
+                            <option value="busy">Busy</option>
+                            <option value="off-duty">Off Duty</option>
+                            <option value="on-leave">On Leave</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Shift Schedule</label>
+                        <select id="edit_shift" name="shift" class="form-select">
+                            <option value="morning">Morning</option>
+                            <option value="evening">Evening</option>
+                            <option value="night">Night</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editDoctorModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: MARK ATTENDANCE                                         -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="markAttendanceModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-clipboard-check"></i> Mark Doctor Attendance</h3>
+            <button class="modal-close" onclick="closeModal('markAttendanceModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('mark_attendance') }}">
+            <input type="hidden" id="att_doctor_id" name="doctor_id">
+            <input type="hidden" id="att_modal_date" name="date">
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Doctor</label>
+                    <input type="text" id="att_doctor_name" class="form-control" readonly style="background:var(--gray-100);">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Attendance Status *</label>
+                        <select id="att_status_select" name="status" class="form-select">
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                            <option value="half-day">Half Day</option>
+                            <option value="on-leave">On Leave</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Date</label>
+                        <input type="text" id="att_display_date" class="form-control" readonly style="background:var(--gray-100);">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Check-in Time</label>
+                        <input type="text" id="att_check_in" name="check_in" placeholder="e.g. 08:30 AM" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Check-out Time</label>
+                        <input type="text" id="att_check_out" name="check_out" placeholder="e.g. 04:30 PM" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes / Shift Remarks</label>
+                    <textarea id="att_notes" name="notes" rows="2" placeholder="e.g. Late check-in due to emergency surgery..." class="form-control"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('markAttendanceModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Attendance</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────── -->
+<!-- MODAL: REQUEST LEAVE                                           -->
+<!-- ────────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="requestLeaveModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-calendar-plus"></i> Request Doctor Leave</h3>
+            <button class="modal-close" onclick="closeModal('requestLeaveModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('request_leave') }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Doctor *</label>
+                    <select name="doctor_id" required class="form-select">
+                        <option value="">-- Select Doctor --</option>
+                        {% for doc in doctors %}
+                        <option value="{{ doc.id }}">{{ doc.name }} ({{ doc.specialization }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Leave Type *</label>
+                    <select name="leave_type" required class="form-select">
+                        <option value="casual">Casual Leave</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="emergency">Emergency Leave</option>
+                        <option value="earned">Earned / Privilege Leave</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Start Date *</label>
+                        <input type="date" name="start_date" required value="{{ today_date }}" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>End Date *</label>
+                        <input type="date" name="end_date" required value="{{ today_date }}" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Reason for Leave *</label>
+                    <textarea name="reason" rows="3" required placeholder="Explain reason for leave request..." class="form-control"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('requestLeaveModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Submit Leave Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+function openEditDoctorModal(doc) {
+    document.getElementById('editDoctorForm').action = '/doctors/' + doc.id + '/edit';
+    document.getElementById('edit_name').value = doc.name || '';
+    document.getElementById('edit_specialization').value = doc.specialization || '';
+    document.getElementById('edit_phone').value = doc.phone || '';
+    document.getElementById('edit_email').value = doc.email || '';
+    document.getElementById('edit_status').value = doc.status || 'available';
+    document.getElementById('edit_shift').value = doc.shift || 'morning';
+    openModal('editDoctorModal');
+}
+
+function openMarkAttendanceModal(doctorId, doctorName, attDate, currentAttStatus, checkIn, checkOut, notes) {
+    document.getElementById('att_doctor_id').value = doctorId;
+    document.getElementById('att_doctor_name').value = doctorName;
+    document.getElementById('att_modal_date').value = attDate;
+    document.getElementById('att_display_date').value = attDate;
+    document.getElementById('att_status_select').value = currentAttStatus || 'present';
+    document.getElementById('att_check_in').value = checkIn || '';
+    document.getElementById('att_check_out').value = checkOut || '';
+    document.getElementById('att_notes').value = notes || '';
+    openModal('markAttendanceModal');
+}
+</script>
+{% endblock %}

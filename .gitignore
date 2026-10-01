@@ -1,0 +1,16 @@
+# Python & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment & Virtualenvs
+.env
+venv/
+env/
+ENV/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# NOTE: malham.db is intentionally tracked so the demo works out-of-the-box upon cloning.

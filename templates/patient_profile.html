@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Profile - {{ patient.name }}{% endblock %}
+{% block page_title %}Patient Profile{% endblock %}
+{% block page_subtitle %}{{ patient.name }} ({{ patient.patient_code or ('P-' ~ (patient.id + 1000)) }}){% endblock %}
+
+{% block content %}
+<div class="patient-profile-container">
+
+    <!-- Top Action Bar -->
+    <div class="header-actions-bar">
+        <a href="{{ url_for('patients') }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Back to Patients List
+        </a>
+
+        <div class="actions-buttons" style="display:flex; gap:10px;">
+            <a href="{{ url_for('new_prescription', patient_id=patient.id) }}" class="btn btn-rose">
+                <i class="fa-solid fa-file-circle-plus"></i> Issue Prescription
+            </a>
+            <button class="btn btn-primary" onclick="openModal('profileLogVisitModal')">
+                <i class="fa-solid fa-plus"></i> Log New Visit
+            </button>
+        </div>
+    </div>
+
+    <!-- Patient Header Card -->
+    <div class="card animate-in">
+        <div class="card-body">
+            <div class="profile-header-flex">
+                <div class="profile-avatar">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+
+                <div class="profile-main-info">
+                    <div class="flex-align-center gap-10">
+                        <h2>{{ patient.name }}</h2>
+                        <span class="patient-code-badge font-lg">{{ patient.patient_code or ('P-' ~ (patient.id + 1000)) }}</span>
+                        <span class="badge-blood">{{ patient.blood_group or 'N/A' }}</span>
+                    </div>
+
+                    <div class="profile-meta-row">
+                        <span><i class="fa-solid fa-user"></i> {{ patient.age or 'N/A' }} Years, {{ patient.gender or 'N/A' }}</span>
+                        <span><i class="fa-solid fa-phone"></i> {{ patient.phone or 'N/A' }}</span>
+                        <span><i class="fa-solid fa-location-dot"></i> {{ patient.address or 'N/A' }}</span>
+                        <span><i class="fa-regular fa-calendar-check"></i> Registered: {{ patient.registered_on or patient.admission_date or 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Section Grid: Visits History + Prescriptions ───────────── -->
+    <div class="section-grid-2">
+
+        <!-- Visit History Card -->
+        <div class="card animate-in">
+            <div class="card-header flex-between">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Full Visit History</h3>
+                <span class="card-badge">{{ visit_history|length }} Total Visits</span>
+            </div>
+            <div class="card-body p-0">
+                {% if visit_history %}
+                <ul class="visit-timeline-list">
+                    {% for v in visit_history %}
+                    <li class="visit-timeline-item">
+                        <div class="vt-icon vt-type-{{ v.visit_type }}">
+                            {% if v.visit_type == 'emergency' %}
+                            <i class="fa-solid fa-truck-medical text-rose-600"></i>
+                            {% elif v.visit_type == 'admission' %}
+                            <i class="fa-solid fa-bed"></i>
+                            {% else %}
+                            <i class="fa-solid fa-stethoscope"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="vt-content">
+                            <div class="flex-between flex-align-center">
+                                <div class="vt-title font-semibold">
+                                    {{ v.visit_type|upper }} Visit · <span class="text-muted">{{ v.reason or 'General' }}</span>
+                                </div>
+                                <span class="vt-date text-xs text-muted"><i class="fa-regular fa-calendar"></i> {{ v.visit_date }}</span>
+                            </div>
+
+                            <div class="vt-details text-xs">
+                                Attending Doctor: <strong>{{ v.doctor_name or 'Unassigned' }}</strong> 
+                                {% if v.specialization %}({{ v.specialization }}){% endif %}
+                            </div>
+
+                            <div class="vt-status-row flex-align-center gap-10 mt-6">
+                                <span class="badge-vstatus status-{{ v.status }}">
+                                    <i class="fa-solid fa-circle"></i> {{ v.status|replace('-', ' ')|capitalize }}
+                                </span>
+
+                                {% if v.triage_level %}
+                                <span class="badge-triage triage-{{ v.triage_level }}">
+                                    Triage: {{ v.triage_level|capitalize }}
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            {% if v.notes %}
+                            <div class="vt-notes-box text-xs">
+                                <strong>Staff Notes:</strong> {{ v.notes }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <h3>No Visit History</h3>
+                    <p>No recorded visits found for this patient.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Prescriptions & Meds Card -->
+        <div class="card animate-in">
+            <div class="card-header flex-between">
+                <h3><i class="fa-solid fa-file-prescription"></i> Prescriptions History</h3>
+                <span class="card-badge">{{ prescriptions|length }} Records</span>
+            </div>
+            <div class="card-body p-0">
+                {% if prescriptions %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>RX Code</th>
+                            <th>Medicines</th>
+                            <th>Doctor</th>
+                            <th>Issued On</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pr in prescriptions %}
+                        <tr>
+                            <td class="font-semibold text-rose-600">
+                                <a href="{{ url_for('view_prescription', prescription_id=pr.id) }}">{{ pr.rx_code or ('RX-' ~ pr.id) }}</a>
+                            </td>
+                            <td>
+                                <div style="font-size:0.85rem; font-weight:500;">
+                                    {% if pr.med_items %}
+                                        {% for item in pr.med_items %}
+                                        <div><i class="fa-solid fa-angle-right text-xs text-muted"></i> {{ item.medicine_name }} <span class="text-xs text-muted">({{ item.dosage_pattern }})</span></div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">No medicines</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-xs">{{ pr.doctor_name or 'Doctor' }}</td>
+                            <td class="text-xs text-muted">{{ pr.issued_on[:10] if pr.issued_on else '—' }}</td>
+                            <td>
+                                <span class="badge-vstatus status-{{ pr.status or 'active' }}">
+                                    {{ (pr.status or 'active')|capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('view_prescription', prescription_id=pr.id) }}" class="btn btn-xs btn-outline">
+                                    <i class="fa-solid fa-eye"></i> View RX
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-pills"></i>
+                    <h3>No Prescriptions</h3>
+                    <p>No active or past prescriptions issued yet.</p>
+                    <a href="{{ url_for('new_prescription', patient_id=patient.id) }}" class="btn btn-sm btn-primary mt-10">
+                        <i class="fa-solid fa-plus"></i> Create First Prescription
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal: Profile Log Visit -->
+<div class="modal-backdrop" id="profileLogVisitModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-notes-medical"></i> Log Visit for {{ patient.name }}</h3>
+            <button class="modal-close" onclick="closeModal('profileLogVisitModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_visit') }}">
+            <input type="hidden" name="patient_id" value="{{ patient.id }}">
+
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Visit Type *</label>
+                        <select id="p_visit_type_select" name="visit_type" required class="form-select" onchange="toggleProfileTriage()">
+                            <option value="opd">OPD Consultation</option>
+                            <option value="emergency">Emergency Care</option>
+                            <option value="admission">In-patient Admission</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Assigned Doctor</label>
+                        <select name="doctor_id" class="form-select">
+                            <option value="">-- Select Doctor --</option>
+                            {% for doc in doctors %}
+                            <option value="{{ doc.id }}">{{ doc.name }} ({{ doc.specialization }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" id="p_triage_container" style="display:none;">
+                    <label class="text-rose-600 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> Triage Severity Level *</label>
+                    <select name="triage_level" class="form-select" style="border-color: var(--rose-300); background: #fff5f5;">
+                        <option value="critical" style="color:#ef4444; font-weight:bold;">🚨 Critical Priority</option>
+                        <option value="urgent" style="color:#f59e0b; font-weight:bold;">⚡ Urgent Priority</option>
+                        <option value="stable" style="color:#10b981; font-weight:bold;">🟢 Stable Priority</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label>Visit Date *</label>
+                        <input type="date" name="visit_date" required value="{{ today_date }}" class="form-control">
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label>Initial Status</label>
+                        <select name="status" class="form-select">
+                            <option value="waiting">Waiting</option>
+                            <option value="in-treatment">In Treatment</option>
+                            <option value="discharged">Discharged</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Reason / Symptoms *</label>
+                    <input type="text" name="reason" required placeholder="Describe chief complaint..." class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>Staff Notes</label>
+                    <textarea name="notes" rows="2" placeholder="Clinical notes..." class="form-control"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('profileLogVisitModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Log Visit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function toggleProfileTriage() {
+    const vt = document.getElementById('p_visit_type_select').value;
+    document.getElementById('p_triage_container').style.display = (vt === 'emergency') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

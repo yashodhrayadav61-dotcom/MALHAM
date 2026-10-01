@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Hospital overview & real-time analytics{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+
+    <!-- ── Welcome Banner ─────────────────────────────────────── -->
+    <div class="welcome-banner animate-in">
+        <div class="welcome-text">
+            <h2>Welcome to MALHAM 🏥</h2>
+            <p>Connecting Every Layer of Hospital Care — your centralised dashboard for patients, beds, doctors, medicines, and more.</p>
+        </div>
+        <div class="welcome-icon">
+            <i class="fa-solid fa-hospital"></i>
+        </div>
+    </div>
+
+    <!-- ── Top Stats Cards ────────────────────────────────────── -->
+    <div class="stats-grid">
+
+        <!-- Total Patients -->
+        <div class="stat-card card-blue animate-in">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Total Patient Footfall</div>
+                <div class="stat-value">{{ total_patients }}</div>
+                <div class="stat-detail">
+                    {{ admitted_patients }} admitted · {{ discharged_patients }} discharged
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency -->
+        <div class="stat-card card-rose animate-in">
+            <div class="stat-icon icon-rose">
+                <i class="fa-solid fa-truck-medical"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Emergency Patients</div>
+                <div class="stat-value">{{ emergency_patients }}</div>
+                <div class="stat-detail">Active emergency cases now</div>
+            </div>
+        </div>
+
+        <!-- Doctors -->
+        <div class="stat-card card-emerald animate-in">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-stethoscope"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Doctors on Duty</div>
+                <div class="stat-value">{{ doctors_available + doctors_busy }}</div>
+                <div class="stat-detail">
+                    {{ doctors_available }} available · {{ doctors_busy }} busy
+                </div>
+            </div>
+        </div>
+
+        <!-- Beds -->
+        <div class="stat-card card-violet animate-in">
+            <div class="stat-icon icon-violet">
+                <i class="fa-solid fa-bed-pulse"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Beds Available</div>
+                <div class="stat-value">{{ beds_available }} <span style="font-size:.85rem;font-weight:500;color:var(--gray-400)">/ {{ beds_total }}</span></div>
+                <div class="stat-detail">
+                    {{ beds_occupied }} occupied · {{ beds_reserved }} reserved
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Prescriptions -->
+        <div class="stat-card card-cyan animate-in">
+            <div class="stat-icon icon-cyan">
+                <i class="fa-solid fa-file-prescription"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Active Prescriptions</div>
+                <div class="stat-value">{{ active_prescriptions or 0 }}</div>
+                <div class="stat-detail">Active patient regimens</div>
+            </div>
+        </div>
+
+        <!-- Pending Reminders -->
+        <div class="stat-card card-amber animate-in">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Pending Reminders</div>
+                <div class="stat-value">{{ pending_reminders or 0 }}</div>
+                <div class="stat-detail">Queued for WhatsApp dispatch</div>
+            </div>
+        </div>
+
+        <!-- Overdue Follow-ups -->
+        <div class="stat-card card-rose animate-in">
+            <div class="stat-icon icon-rose">
+                <i class="fa-solid fa-calendar-xmark"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Overdue Follow-ups</div>
+                <div class="stat-value">{{ overdue_followups or 0 }}</div>
+                <div class="stat-detail">Requires attention</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Row: Bed + Doctor + Medicine Summaries ──────────────── -->
+    <div class="section-grid-2">
+
+        <!-- Bed Summary -->
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-bed"></i> Bed Occupancy</h3>
+                <span class="card-badge">{{ beds_total }} Total</span>
+            </div>
+            <div class="card-body">
+                <div class="bed-summary">
+                    <div class="bed-item available">
+                        <div class="bed-count">{{ beds_available }}</div>
+                        <div class="bed-label">Available</div>
+                    </div>
+                    <div class="bed-item occupied">
+                        <div class="bed-count">{{ beds_occupied }}</div>
+                        <div class="bed-label">Occupied</div>
+                    </div>
+                    <div class="bed-item reserved">
+                        <div class="bed-count">{{ beds_reserved }}</div>
+                        <div class="bed-label">Reserved</div>
+                    </div>
+                </div>
+                <!-- Occupancy bar -->
+                <div class="bed-bar">
+                    {% set total = beds_available + beds_occupied + beds_reserved %}
+                    {% if total > 0 %}
+                    <div class="segment seg-available" style="width:{{ (beds_available / total * 100)|round(1) }}%"></div>
+                    <div class="segment seg-occupied"  style="width:{{ (beds_occupied  / total * 100)|round(1) }}%"></div>
+                    <div class="segment seg-reserved"  style="width:{{ (beds_reserved  / total * 100)|round(1) }}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctor + Medicine combined -->
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-user-doctor"></i> Doctor Attendance</h3>
+                <span class="card-badge">{{ doctors_total }} Staff</span>
+            </div>
+            <div class="card-body">
+                <div class="doctor-grid">
+                    <div class="doctor-stat ds-available">
+                        <div class="doc-count">{{ doctors_available }}</div>
+                        <div class="doc-label">Available</div>
+                    </div>
+                    <div class="doctor-stat ds-busy">
+                        <div class="doc-count">{{ doctors_busy }}</div>
+                        <div class="doc-label">Busy</div>
+                    </div>
+                    <div class="doctor-stat ds-offduty">
+                        <div class="doc-count">{{ doctors_offduty }}</div>
+                        <div class="doc-label">Off Duty</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Row: Medicine Stock ────────────────────────────────── -->
+    <div class="section-grid-2">
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-pills"></i> Medicine Stock Summary</h3>
+                <span class="card-badge">{{ meds_in_stock + meds_low_stock + meds_out_stock }} Items</span>
+            </div>
+            <div class="card-body">
+                <div class="med-grid">
+                    <div class="med-stat ms-instock">
+                        <div class="med-count">{{ meds_in_stock }}</div>
+                        <div class="med-label">In Stock</div>
+                    </div>
+                    <div class="med-stat ms-lowstock">
+                        <div class="med-count">{{ meds_low_stock }}</div>
+                        <div class="med-label">Low Stock</div>
+                    </div>
+                    <div class="med-stat ms-outstock">
+                        <div class="med-count">{{ meds_out_stock }}</div>
+                        <div class="med-label">Out of Stock</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Follow-ups -->
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-calendar-check"></i> Upcoming Follow-ups</h3>
+                <span class="card-badge">{{ upcoming_followups|length }} Scheduled</span>
+            </div>
+            <div class="card-body">
+                <div class="followup-list">
+                    {% for fu in upcoming_followups %}
+                    <div class="followup-card">
+                        <div class="followup-date">
+                            {% set parts = fu.followup_date.split('-') %}
+                            <div class="fu-day">{{ parts[2] }}</div>
+                            <div class="fu-month">
+                                {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parts[1]|int - 1] }}
+                            </div>
+                        </div>
+                        <div class="followup-info">
+                            <div class="fu-reason">{{ fu.reason }}</div>
+                            <div class="fu-details">{{ fu.patient_name }} · {{ fu.doctor_name }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not upcoming_followups %}
+                    <p style="text-align:center;color:var(--gray-400);padding:20px 0;">No upcoming follow-ups</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Row: Charts ────────────────────────────────────────── -->
+    <div class="section-grid-2">
+
+        <!-- Patient Footfall Chart -->
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-chart-line"></i> Patient Footfall</h3>
+                <span class="card-badge">Trend</span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="footfallChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Breakdown Chart -->
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-chart-pie"></i> Department Breakdown</h3>
+                <span class="card-badge">By Patients</span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Row: Emergency + Recent Activity ───────────────────── -->
+    <div class="section-grid-3">
+
+        <!-- Emergency Overview -->
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Emergency Overview</h3>
+                <span class="card-badge" style="background:#fef2f2;color:var(--rose-600);">{{ emergency_patients }} Active</span>
+            </div>
+            <div class="card-body" style="padding:0;">
+                {% if emergency_list %}
+                <table class="emergency-table">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Age</th>
+                            <th>Gender</th>
+                            <th>Blood</th>
+                            <th>Admitted</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in emergency_list %}
+                        <tr>
+                            <td style="font-weight:600;">{{ p.name }}</td>
+                            <td>{{ p.age }}</td>
+                            <td>{{ p.gender }}</td>
+                            <td>{{ p.blood_group }}</td>
+                            <td>{{ p.admission_date }}</td>
+                            <td>
+                                <span class="badge-emergency">
+                                    <i class="fa-solid fa-circle"></i> Emergency
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="text-align:center;color:var(--gray-400);padding:32px 0;">No emergency patients</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card animate-in">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</h3>
+                <span class="card-badge">Live Feed</span>
+            </div>
+            <div class="card-body" style="max-height:400px;overflow-y:auto;">
+                <ul class="activity-list">
+                    {% for act in recent_activity %}
+                    <li class="activity-item">
+                        <div class="activity-dot dot-{{ act.category }}"></div>
+                        <div class="activity-body">
+                            <div class="activity-action">{{ act.action }}</div>
+                            <div class="activity-desc">{{ act.description }}</div>
+                            <div class="activity-time">
+                                <i class="fa-regular fa-clock"></i> {{ act.timestamp }}
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                    {% if not recent_activity %}
+                    <p style="text-align:center;color:var(--gray-400);padding:20px 0;">No recent activity</p>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Module coming soon{% endblock %}
+
+{% block content %}
+<div class="placeholder-page">
+    <div class="placeholder-icon">
+        <i class="fa-solid {{ icon }}"></i>
+    </div>
+    <h2>{{ title }} Module</h2>
+    <p>This section is under development. The full {{ title|lower }} management module will be available soon.</p>
+</div>
+{% endblock %}
