@@ -14,3 +14,5 @@ ENV/
 Thumbs.db
 
 # NOTE: malham.db is intentionally tracked so the demo works out-of-the-box upon cloning.
+
+.venv/

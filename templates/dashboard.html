@@ -68,7 +68,7 @@
             </div>
             <div class="stat-info">
                 <div class="stat-label">Beds Available</div>
-                <div class="stat-value">{{ beds_available }} <span style="font-size:.85rem;font-weight:500;color:var(--gray-400)">/ {{ beds_total }}</span></div>
+                <div class="stat-value">{{ beds_available }} <span style="font-size:.85rem;font-weight:500;color:var(--theme-text-muted)">/ {{ beds_total }}</span></div>
                 <div class="stat-detail">
                     {{ beds_occupied }} occupied · {{ beds_reserved }} reserved
                 </div>
@@ -266,7 +266,7 @@
         <div class="card animate-in">
             <div class="card-header">
                 <h3><i class="fa-solid fa-triangle-exclamation"></i> Emergency Overview</h3>
-                <span class="card-badge" style="background:#fef2f2;color:var(--rose-600);">{{ emergency_patients }} Active</span>
+                <span class="card-badge">{{ emergency_patients }} Active</span>
             </div>
             <div class="card-body" style="padding:0;">
                 {% if emergency_list %}

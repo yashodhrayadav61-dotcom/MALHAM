@@ -3,9 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>403 Forbidden – Access Restricted</title>
+    <title>403 Forbidden – MALHAM Hospital Portal</title>
+    
+    <!-- Theme Detection Before First Paint -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('malham-theme');
+                if (savedTheme === 'light' || savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                } else {
+                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+                }
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    <link rel="icon" href="{{ url_for('static', filename='img/malham-logo.svg') }}" type="image/svg+xml">
+
     <!-- Google Fonts & Font Awesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,69 +32,61 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body {
-            background-color: var(--bg-dark, #0b0e14);
-            color: var(--text-main, #f0f4f8);
+            background-color: var(--theme-bg);
+            color: var(--theme-text);
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
-            background-image: 
-                radial-gradient(circle at 50% 30%, rgba(255, 45, 85, 0.12) 0%, transparent 60%);
+            font-family: 'Inter', -apple-system, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .error-card {
-            width: 100%;
-            max-width: 480px;
-            background: rgba(18, 22, 31, 0.9);
-            border: 1px solid rgba(255, 45, 85, 0.3);
+            background: var(--theme-panel);
+            border: 1px solid var(--theme-panel-border);
             border-radius: 20px;
-            padding: 40px 30px;
+            padding: 44px 36px;
+            max-width: 480px;
+            width: 90%;
             text-align: center;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 45, 85, 0.15);
+            box-shadow: var(--theme-shadow);
             backdrop-filter: blur(12px);
         }
 
-        .error-icon {
+        .error-icon-box {
             width: 80px;
             height: 80px;
-            background: rgba(255, 45, 85, 0.15);
-            border: 2px solid rgba(255, 45, 85, 0.4);
-            border-radius: 50%;
+            background: rgba(225, 29, 72, 0.12);
+            border: 1px solid var(--theme-primary);
+            border-radius: 20px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #ff2d55;
+            color: var(--theme-primary);
             font-size: 2.5rem;
             margin-bottom: 20px;
-            box-shadow: 0 0 25px rgba(255, 45, 85, 0.3);
-            animation: pulse-glow 2s infinite ease-in-out;
-        }
-
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(255, 45, 85, 0.3); }
-            50% { box-shadow: 0 0 35px rgba(255, 45, 85, 0.6); }
+            filter: var(--theme-logo-glow);
         }
 
         .error-title {
             font-size: 2rem;
             font-weight: 800;
-            letter-spacing: -0.5px;
             margin: 0 0 10px 0;
-            color: #ffffff;
+            color: var(--theme-text);
         }
 
         .error-subtitle {
             font-size: 1.05rem;
-            color: #ff2d55;
+            color: var(--theme-primary);
             font-weight: 600;
             margin-bottom: 14px;
         }
 
         .error-desc {
             font-size: 0.92rem;
-            color: #8a99ad;
+            color: var(--theme-text-muted);
             line-height: 1.6;
             margin-bottom: 28px;
         }
@@ -88,10 +99,10 @@
 
         .btn-back {
             padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: var(--theme-demo-bg);
+            border: 1px solid var(--theme-demo-border);
             border-radius: 10px;
-            color: #e2e8f0;
+            color: var(--theme-text);
             font-weight: 600;
             font-size: 0.9rem;
             text-decoration: none;
@@ -102,13 +113,13 @@
         }
 
         .btn-back:hover {
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
+            background: var(--theme-demo-hover-bg);
+            border-color: var(--theme-demo-hover-border);
         }
 
         .btn-primary-glow {
             padding: 10px 20px;
-            background: linear-gradient(135deg, #ff2d55, #e00034);
+            background: var(--theme-primary);
             border: none;
             border-radius: 10px;
             color: white;
@@ -116,50 +127,51 @@
             font-size: 0.9rem;
             text-decoration: none;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(255, 45, 85, 0.4);
+            box-shadow: var(--theme-btn-glow);
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
 
         .btn-primary-glow:hover {
+            background: var(--theme-primary-hover);
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(255, 45, 85, 0.6);
+        }
+
+        .badge-code {
+            display: inline-block;
+            background: rgba(225, 29, 72, 0.1);
+            color: var(--theme-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.82rem;
+            margin-bottom: 16px;
+            border: 1px solid rgba(225, 29, 72, 0.25);
         }
     </style>
 </head>
 <body>
 
     <div class="error-card">
-        <div class="error-icon">
+        <div class="error-icon-box">
             <i class="fa-solid fa-user-lock"></i>
         </div>
-        <h1 class="error-title">403 Forbidden</h1>
-        <div class="error-subtitle">Access Restricted</div>
+
+        <div class="badge-code">HTTP 403 FORBIDDEN</div>
+        <h1 class="error-title">Access Restricted</h1>
+        <div class="error-subtitle">Role-Based Access Control</div>
         <p class="error-desc">
-            You do not have the required permissions to access this page or resource.<br>
-            Your current account role (<strong>{{ current_user.role if current_user else 'Guest' }}</strong>) is restricted from viewing this section.
+            You do not have permission to view this resource.
         </p>
 
         <div class="btn-group-error">
             <a href="javascript:history.back()" class="btn-back">
                 <i class="fa-solid fa-arrow-left"></i> Go Back
             </a>
-            {% if current_user and current_user.role == 'patient' %}
-                {% if current_user.patient_id %}
-                <a href="{{ url_for('patient_profile', patient_id=current_user.patient_id) }}" class="btn-primary-glow">
-                    <i class="fa-solid fa-user-circle"></i> My Patient Profile
-                </a>
-                {% else %}
-                <a href="{{ url_for('logout') }}" class="btn-primary-glow">
-                    <i class="fa-solid fa-right-from-bracket"></i> Relogin
-                </a>
-                {% endif %}
-            {% else %}
-            <a href="{{ url_for('dashboard') }}" class="btn-primary-glow">
-                <i class="fa-solid fa-house"></i> Return to Dashboard
+            <a href="/" class="btn-primary-glow">
+                <i class="fa-solid fa-house"></i> Home
             </a>
-            {% endif %}
         </div>
     </div>
 

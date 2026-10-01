@@ -6,14 +6,29 @@
     <meta name="description" content="MALHAM – Connecting Every Layer of Hospital Care. A modern hospital management platform.">
     <title>{% block title %}MALHAM{% endblock %} – Hospital Care Platform</title>
 
-    <!-- Favicon (emoji-based inline SVG) -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    <!-- Theme System Initialization Before First Paint -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('malham-theme');
+                if (savedTheme === 'light' || savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                } else {
+                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+                }
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
 
-    <!-- Google Fonts (loaded via CSS @import, but also preconnect for speed) -->
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='img/malham-logo.svg') }}" type="image/svg+xml">
+
+    <!-- Google Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <!-- Font Awesome 6 (icons) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Chart.js -->
@@ -31,8 +46,10 @@
 
             <!-- Brand -->
             <div class="sidebar-brand">
-                <div class="brand-icon">
-                    <i class="fa-solid fa-heart-pulse"></i>
+                <div class="brand-icon" style="background: none; border: none; padding: 0; box-shadow: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--theme-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; display: block; filter: var(--theme-logo-glow);">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                    </svg>
                 </div>
                 <div class="brand-text">
                     <span class="brand-name">MALHAM</span>
@@ -95,12 +112,12 @@
             <div class="sidebar-footer">
                 {% if current_user %}
                 <div class="sidebar-user-block" style="display:flex; align-items:center; gap:10px; padding:4px 0;">
-                    <div class="header-avatar" style="width:32px; height:32px; font-size:0.8rem; background: linear-gradient(135deg, rgba(255,42,95,0.3), rgba(0,210,255,0.3)); border: 1px solid rgba(255,255,255,0.2);">
+                    <div class="header-avatar" style="width:32px; height:32px; font-size:0.8rem; background: linear-gradient(135deg, rgba(255,42,95,0.3), rgba(0,210,255,0.3)); border: 1px solid var(--border-color);">
                         {{ current_user.display_name[0]|upper }}
                     </div>
                     <div style="flex:1; overflow:hidden;">
-                        <div style="font-size:0.82rem; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ current_user.display_name }}</div>
-                        <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color: {% if current_user.role == 'head_doctor' %}#ff2a5f{% elif current_user.role == 'doctor' %}#00d2ff{% elif current_user.role == 'staff' %}#ffb703{% else %}#06d6a0{% endif %};">
+                        <div style="font-size:0.82rem; font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ current_user.display_name }}</div>
+                        <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color: var(--theme-primary);">
                             {{ current_user.role|replace('_', ' ')|title }}
                         </div>
                     </div>
@@ -149,19 +166,24 @@
                         <span id="header-clock">Loading...</span>
                     </div>
 
+                    <!-- Sun / Moon Theme Toggle Button -->
+                    <button type="button" class="theme-toggle-btn" id="header-theme-toggle" aria-label="Toggle Light/Dark Theme" title="Toggle Light/Dark Theme" style="width: 36px; height: 36px; font-size: 0.95rem;">
+                        <i class="fa-solid fa-sun icon-sun"></i>
+                        <i class="fa-solid fa-moon icon-moon"></i>
+                    </button>
+
                     {% if current_user %}
-                    <div class="user-profile-badge" style="display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 6px 14px; border-radius: 30px;">
+                    <div class="user-profile-badge" style="display: flex; align-items: center; gap: 12px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 6px 14px; border-radius: 30px;">
                         <div style="display: flex; flex-direction: column; text-align: right;">
-                            <span style="font-weight: 600; font-size: 0.88rem; color: #ffffff;">{{ current_user.display_name }}</span>
-                            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-                                         color: {% if current_user.role == 'head_doctor' %}#ff2a5f{% elif current_user.role == 'doctor' %}#00d2ff{% elif current_user.role == 'staff' %}#ffb703{% else %}#06d6a0{% endif %};">
+                            <span style="font-weight: 600; font-size: 0.88rem; color: var(--text-main);">{{ current_user.display_name }}</span>
+                            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--theme-primary);">
                                 {{ current_user.role|replace('_', ' ')|title }}
                             </span>
                         </div>
-                        <div class="header-avatar" style="background: linear-gradient(135deg, rgba(255,45,85,0.2), rgba(0,210,255,0.2)); border: 1px solid rgba(255,255,255,0.2); font-weight: 700; color: #ffffff;">
+                        <div class="header-avatar" style="background: linear-gradient(135deg, rgba(255,42,95,0.2), rgba(0,210,255,0.2)); border: 1px solid var(--border-color); font-weight: 700; color: var(--text-main);">
                             {{ current_user.display_name[0]|upper }}
                         </div>
-                        <a href="{{ url_for('logout') }}" class="btn-logout" title="Logout" style="color: #ff453a; font-size: 1.1rem; margin-left: 4px; text-decoration: none; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,69,58,0.15)'" onmouseout="this.style.background='transparent'">
+                        <a href="{{ url_for('logout') }}" class="btn-logout" title="Logout" style="color: var(--primary-500); font-size: 1.1rem; margin-left: 4px; text-decoration: none; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,69,58,0.15)'" onmouseout="this.style.background='transparent'">
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </a>
                     </div>
@@ -178,5 +200,23 @@
 
     <!-- App JavaScript -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toggleBtn = document.getElementById('header-theme-toggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    var currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                    var nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', nextTheme);
+                    try {
+                        localStorage.setItem('malham-theme', nextTheme);
+                    } catch (e) {}
+                    if (window.updateChartsTheme) {
+                        window.updateChartsTheme();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

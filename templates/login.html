@@ -1,341 +1,237 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login – MALHAM Hospital Portal</title>
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
-    <!-- Google Fonts & Font Awesome -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>Login - MALHAM Healthcare</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        body {
-            background-color: var(--bg-dark, #0b0e14);
-            color: var(--text-main, #f0f4f8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
-            background-image: 
-                radial-gradient(circle at 15% 15%, rgba(255, 45, 85, 0.08) 0%, transparent 45%),
-                radial-gradient(circle at 85% 85%, rgba(0, 210, 255, 0.05) 0%, transparent 45%);
+        [data-theme="dark"] {
+            --bg-img-1: url("{{ url_for('static', filename='img/login_bg_dark_1.jpg') }}?v=3");
+            --bg-img-2: url("{{ url_for('static', filename='img/login_bg_dark_2.jpg') }}?v=3");
+            --bg-overlay: linear-gradient(135deg, rgba(15,15,20,0.75), rgba(40,10,15,0.70));
         }
-
-        .login-wrapper {
-            width: 100%;
-            max-width: 440px;
-            padding: 20px;
+        [data-theme="light"] {
+            --bg-img-1: url("{{ url_for('static', filename='img/login_bg_light_1.jpg') }}?v=3");
+            --bg-img-2: url("{{ url_for('static', filename='img/login_bg_light_2.jpg') }}?v=3");
+            --bg-overlay: linear-gradient(135deg, rgba(255,255,255,0.65), rgba(255,235,240,0.55));
         }
-
-        .login-card {
-            background: rgba(18, 22, 31, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 36px 30px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 45, 85, 0.1);
-            backdrop-filter: blur(12px);
+        .bg-slideshow {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+            background-color: var(--theme-bg);
+            overflow: hidden;
         }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 28px;
-        }
-
-        .login-brand-icon {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, rgba(255, 45, 85, 0.2), rgba(255, 45, 85, 0.05));
-            border: 1px solid rgba(255, 45, 85, 0.4);
-            border-radius: 14px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #ff2d55;
-            font-size: 1.75rem;
-            margin-bottom: 12px;
-            box-shadow: 0 0 15px rgba(255, 45, 85, 0.3);
-        }
-
-        .login-title {
-            font-size: 1.6rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin: 0 0 6px 0;
-            color: #ffffff;
-        }
-
-        .login-subtitle {
-            font-size: 0.88rem;
-            color: #8a99ad;
-            margin: 0;
-        }
-
-        .alert-error {
-            background: rgba(255, 69, 58, 0.15);
-            border: 1px solid rgba(255, 69, 58, 0.3);
-            color: #ff453a;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.82rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #a0aec0;
-            margin-bottom: 6px;
-        }
-
-        .input-icon-wrapper {
-            position: relative;
-        }
-
-        .input-icon-wrapper i {
+        .bg-img {
             position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #64748b;
-            font-size: 0.95rem;
+            top: -5%; left: -5%; right: -5%; bottom: -5%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
         }
-
-        .form-input {
-            width: 100%;
-            padding: 12px 14px 12px 40px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #ffffff;
-            font-size: 0.95rem;
-            outline: none;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-        }
-
-        .form-input:focus {
-            border-color: #ff2d55;
-            box-shadow: 0 0 10px rgba(255, 45, 85, 0.25);
-            background: rgba(255, 255, 255, 0.07);
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #ff2d55, #e00034);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(255, 45, 85, 0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(255, 45, 85, 0.5);
-        }
-
-        .demo-divider {
-            position: relative;
-            text-align: center;
-            margin: 28px 0 20px 0;
-        }
-
-        .demo-divider::before {
-            content: '';
+        .bg-img.slide-1 { background-image: var(--bg-img-1); }
+        .bg-img.slide-2 { background-image: var(--bg-img-2); }
+        .bg-overlay {
             position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.08);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-overlay);
+            z-index: 1;
         }
-
-        .demo-divider-text {
-            position: relative;
-            background: rgba(18, 22, 31, 1);
-            padding: 0 12px;
-            font-size: 0.78rem;
-            color: #8a99ad;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            font-weight: 600;
+        @keyframes slideZoom {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
         }
-
-        .demo-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .bg-img.active {
+            opacity: 1;
+            animation: slideZoom 15s linear forwards;
         }
-
-        .btn-demo {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            padding: 10px 8px;
-            color: #e2e8f0;
-            font-size: 0.8rem;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .btn-demo:hover {
-            background: rgba(255, 45, 85, 0.12);
-            border-color: rgba(255, 45, 85, 0.3);
-            color: #ffffff;
-        }
-
-        .btn-demo i {
-            font-size: 1rem;
-            width: 22px;
-            text-align: center;
-        }
-
-        .role-badge-mini {
-            display: block;
-            font-size: 0.7rem;
-            color: #94a3b8;
-            font-weight: normal;
-        }
-
-        .role-head { color: #ff2d55; }
-        .role-doc { color: #00d2ff; }
-        .role-staff { color: #ffb703; }
-        .role-patient { color: #06d6a0; }
-
-        .login-footer {
-            margin-top: 24px;
-            text-align: center;
-            font-size: 0.78rem;
-            color: #64748b;
+        @media (prefers-reduced-motion: reduce) {
+            .bg-img.active { animation: none; }
         }
     </style>
+    
+    <script>
+        // Apply theme immediately to avoid flash of unstyled content
+        (function() {
+            try {
+                var storedTheme = localStorage.getItem('malham-theme');
+                if (storedTheme) {
+                    document.documentElement.setAttribute('data-theme', storedTheme);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            } catch (e) {}
+        })();
+    </script>
 </head>
-<body>
+<body class="login-page-body animate-entrance">
+    
+    <div class="exit-progress-bar" id="exitProgress"></div>
 
-    <div class="login-wrapper">
-        <div class="login-card">
-            
-            <div class="login-header">
-                <div class="login-brand-icon">
-                    <i class="fa-solid fa-heart-pulse"></i>
-                </div>
-                <h1 class="login-title">MALHAM</h1>
-                <p class="login-subtitle" style="color: #ff2a5f; font-weight: 700; font-size: 0.76rem; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 4px;">ONE PLATFORM. ONE CONNECTED CARE JOURNEY.</p>
-            </div>
+    <button id="themeToggleBtn" class="login-theme-toggle" aria-label="Toggle Theme" style="position: absolute; top: 24px; right: 24px; z-index: 100;">
+        <i class="ri-sun-line icon-sun"></i>
+        <i class="ri-moon-line icon-moon"></i>
+    </button>
 
-            {% if error %}
-            <div class="alert-error">
-                <i class="fa-solid fa-circle-exclamation"></i>
-                <span>{{ error }}</span>
-            </div>
-            {% endif %}
-
-            <form method="POST" action="{{ url_for('login') }}">
-                <div class="form-group">
-                    <label class="form-label" for="username">Username</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-user"></i>
-                        <input type="text" id="username" name="username" class="form-input" placeholder="Enter username" required autofocus>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-lock"></i>
-                        <input type="password" id="password" name="password" class="form-input" placeholder="Enter password" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-submit">
-                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
-                </button>
-            </form>
-
-            <div class="demo-divider">
-                <span class="demo-divider-text">Quick Demo Login</span>
-            </div>
-
-            <div class="demo-grid">
-                <form method="POST" action="{{ url_for('login') }}">
-                    <input type="hidden" name="demo_role" value="head_doctor">
-                    <button type="submit" class="btn-demo">
-                        <i class="fa-solid fa-user-doctor role-head"></i>
-                        <div>
-                            <strong style="display:block;">Head Doctor</strong>
-                            <span class="role-badge-mini">Dr. Suresh Kumar</span>
-                        </div>
-                    </button>
-                </form>
-
-                <form method="POST" action="{{ url_for('login') }}">
-                    <input type="hidden" name="demo_role" value="doctor">
-                    <button type="submit" class="btn-demo">
-                        <i class="fa-solid fa-stethoscope role-doc"></i>
-                        <div>
-                            <strong style="display:block;">Doctor</strong>
-                            <span class="role-badge-mini">Dr. Anita Desai</span>
-                        </div>
-                    </button>
-                </form>
-
-                <form method="POST" action="{{ url_for('login') }}">
-                    <input type="hidden" name="demo_role" value="staff">
-                    <button type="submit" class="btn-demo">
-                        <i class="fa-solid fa-user-nurse role-staff"></i>
-                        <div>
-                            <strong style="display:block;">Staff / Nurse</strong>
-                            <span class="role-badge-mini">Nurse Sarah</span>
-                        </div>
-                    </button>
-                </form>
-
-                <form method="POST" action="{{ url_for('login') }}">
-                    <input type="hidden" name="demo_role" value="patient">
-                    <button type="submit" class="btn-demo">
-                        <i class="fa-solid fa-hospital-user role-patient"></i>
-                        <div>
-                            <strong style="display:block;">Patient</strong>
-                            <span class="role-badge-mini">Aarav Sharma</span>
-                        </div>
-                    </button>
-                </form>
-            </div>
-
-            <div class="login-footer">
-                <i class="fa-solid fa-shield-halved"></i> Role-Based Access Control Enabled
-            </div>
-
-        </div>
+    <div class="bg-slideshow">
+        <div class="bg-img slide-1 active"></div>
+        <div class="bg-img slide-2"></div>
+        <div class="bg-overlay"></div>
     </div>
 
+        <!-- Center Card Zone -->
+        <div class="login-card-zone">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-brand-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--theme-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                        </svg>
+                    </div>
+                    <h1 class="login-title">MALHAM</h1>
+                    <p class="login-subtitle">ONE PLATFORM. ONE CONNECTED CARE JOURNEY.</p>
+                </div>
+
+                {% if error %}
+                    <div class="login-error-banner">
+                        <i class="ri-error-warning-line"></i>
+                        <span>{{ error }}</span>
+                    </div>
+                {% endif %}
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="login-error-banner">
+                        <i class="ri-error-warning-line"></i>
+                        <span>{{ message }}</span>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="/login" id="loginForm">
+                    <div class="login-form-group">
+                        <label class="login-label" for="username">Username</label>
+                        <input type="text" id="username" name="username" class="login-input" required autocomplete="username" placeholder="Enter your username">
+                    </div>
+                    
+                    <div class="login-form-group">
+                        <label class="login-label" for="password">Password</label>
+                        <input type="password" id="password" name="password" class="login-input" required autocomplete="current-password" placeholder="••••••••">
+                        <button type="button" class="password-toggle" id="pwdToggle" tabindex="-1">
+                            <i class="ri-eye-line"></i>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn-login-primary" id="loginSubmitBtn">
+                        <i class="ri-login-circle-line" style="margin-right: 8px;"></i> Access System
+                    </button>
+                </form>
+
+                <div class="login-divider">Quick Demo Login</div>
+
+                <div class="demo-roles-grid">
+                    <form method="POST" action="/login" class="demo-form">
+                        <input type="hidden" name="demo_role" value="head_doctor">
+                        <button type="submit" class="btn-demo-role" onclick="showExitLoading(this)"><i class="ri-stethoscope-line"></i> Head Doctor / Dr. Suresh Kumar</button>
+                    </form>
+                    
+                    <form method="POST" action="/login" class="demo-form">
+                        <input type="hidden" name="demo_role" value="doctor">
+                        <button type="submit" class="btn-demo-role" onclick="showExitLoading(this)"><i class="ri-nurse-line"></i> Doctor / Dr. Anita Desai</button>
+                    </form>
+                    
+                    <form method="POST" action="/login" class="demo-form">
+                        <input type="hidden" name="demo_role" value="staff">
+                        <button type="submit" class="btn-demo-role" onclick="showExitLoading(this)"><i class="ri-group-line"></i> Staff / Nurse Sarah</button>
+                    </form>
+                    
+                    <form method="POST" action="/login" class="demo-form">
+                        <input type="hidden" name="demo_role" value="patient">
+                        <button type="submit" class="btn-demo-role" onclick="showExitLoading(this)"><i class="ri-user-heart-line"></i> Patient / Aarav Sharma</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        // Slideshow Logic
+        const slides = document.querySelectorAll('.bg-img');
+        if (window.matchMedia("(prefers-reduced-motion: no-preference)").matches && slides.length > 0) {
+            let currentSlide = 0;
+            setInterval(() => {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = (currentSlide + 1) % slides.length;
+                
+                // Force a reflow so the animation restarts
+                void slides[currentSlide].offsetWidth;
+                
+                slides[currentSlide].classList.add('active');
+            }, 7000);
+        }
+
+        // Theme Toggle Logic
+        const toggleBtn = document.getElementById('themeToggleBtn');
+        const root = document.documentElement;
+
+        toggleBtn.addEventListener('click', () => {
+            const currentTheme = root.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', newTheme);
+            try {
+                localStorage.setItem('malham-theme', newTheme);
+            } catch(e) {}
+        });
+
+        // Password Visibility Toggle
+        const pwdInput = document.getElementById('password');
+        const pwdToggleBtn = document.getElementById('pwdToggle');
+        
+        if(pwdToggleBtn && pwdInput) {
+            pwdToggleBtn.addEventListener('click', () => {
+                const type = pwdInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                pwdInput.setAttribute('type', type);
+                
+                const icon = pwdToggleBtn.querySelector('i');
+                if (type === 'text') {
+                    icon.classList.remove('ri-eye-line');
+                    icon.classList.add('ri-eye-off-line');
+                } else {
+                    icon.classList.remove('ri-eye-off-line');
+                    icon.classList.add('ri-eye-line');
+                }
+            });
+        }
+
+        // Exit Animation
+        const loginForm = document.getElementById('loginForm');
+        const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+        
+        function showExitLoading(btnElement = null) {
+            document.body.classList.add('is-exiting');
+            
+            if (btnElement) {
+                const originalContent = btnElement.innerHTML;
+                btnElement.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Authenticating...';
+                btnElement.style.pointerEvents = 'none';
+            }
+        }
+
+        if(loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                // Allow the form to submit naturally, just add visual flair
+                showExitLoading(loginSubmitBtn);
+            });
+        }
+    </script>
 </body>
 </html>

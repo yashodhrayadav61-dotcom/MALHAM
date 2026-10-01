@@ -3,11 +3,15 @@
  * ------------
  * Client-side logic for the MALHAM Dashboard & UI enhancements.
  * - Live clock
- * - Chart.js charts (dark mode styling with neon red #ff2a5f & cyan #00d2ff)
+ * - Dynamic Theme-Aware Chart.js charts (responds to Light/Dark mode)
  * - Mobile sidebar toggle
  * - Entrance animations & Number count-up
  * - Toast notification auto-dismiss
  */
+
+let footfallChartInstance = null;
+let deptChartInstance = null;
+let lastChartData = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     initClock();
@@ -17,6 +21,53 @@ document.addEventListener("DOMContentLoaded", () => {
     initToasts();
     loadCharts();
 });
+
+
+/* ── Theme Helpers for Chart.js ───────────────────────────────────── */
+
+function getChartColors() {
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    return {
+        text: isLight ? "#1a1a1f" : "#f4f4f6",
+        muted: isLight ? "#5b5b66" : "#9a9aa5",
+        grid: isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.06)",
+        cardBg: isLight ? "#ffffff" : "#14141a",
+        cardBorder: isLight ? "rgba(220, 38, 38, 0.2)" : "rgba(255, 255, 255, 0.12)",
+        primaryRed: isLight ? "#dc2626" : "#e11d48",
+        primaryRedBg: isLight ? "rgba(220, 38, 38, 0.12)" : "rgba(225, 29, 72, 0.15)",
+        pointBorder: isLight ? "#ffffff" : "#0a0a0d"
+    };
+}
+
+window.updateChartsTheme = function() {
+    const c = getChartColors();
+
+    if (footfallChartInstance) {
+        footfallChartInstance.data.datasets[0].borderColor = c.primaryRed;
+        footfallChartInstance.data.datasets[0].backgroundColor = c.primaryRedBg;
+        footfallChartInstance.data.datasets[0].pointBackgroundColor = c.primaryRed;
+        footfallChartInstance.data.datasets[0].pointBorderColor = c.pointBorder;
+        footfallChartInstance.options.scales.x.grid.color = c.grid;
+        footfallChartInstance.options.scales.x.ticks.color = c.muted;
+        footfallChartInstance.options.scales.y.grid.color = c.grid;
+        footfallChartInstance.options.scales.y.ticks.color = c.muted;
+        footfallChartInstance.options.plugins.tooltip.backgroundColor = c.cardBg;
+        footfallChartInstance.options.plugins.tooltip.titleColor = c.text;
+        footfallChartInstance.options.plugins.tooltip.bodyColor = c.text;
+        footfallChartInstance.options.plugins.tooltip.borderColor = c.cardBorder;
+        footfallChartInstance.update();
+    }
+
+    if (deptChartInstance) {
+        deptChartInstance.data.datasets[0].borderColor = c.cardBg;
+        deptChartInstance.options.plugins.legend.labels.color = c.muted;
+        deptChartInstance.options.plugins.tooltip.backgroundColor = c.cardBg;
+        deptChartInstance.options.plugins.tooltip.titleColor = c.text;
+        deptChartInstance.options.plugins.tooltip.bodyColor = c.text;
+        deptChartInstance.options.plugins.tooltip.borderColor = c.cardBorder;
+        deptChartInstance.update();
+    }
+};
 
 
 /* ── Live Clock ───────────────────────────────────────────────────── */
@@ -141,12 +192,13 @@ function initToasts() {
 }
 
 
-/* ── Charts (Chart.js - Dark Mode) ───────────────────────────────── */
+/* ── Charts (Chart.js - Theme Aware) ─────────────────────────────── */
 
 async function loadCharts() {
     try {
         const response = await fetch("/api/dashboard-stats");
         const data = await response.json();
+        lastChartData = data;
         renderFootfallChart(data.footfall);
         renderDepartmentChart(data.departments);
     } catch (err) {
@@ -159,13 +211,18 @@ function renderFootfallChart(footfall) {
     const ctx = document.getElementById("footfallChart");
     if (!ctx) return;
 
+    if (footfallChartInstance) {
+        footfallChartInstance.destroy();
+    }
+
+    const c = getChartColors();
     const labels = footfall.map((d) => {
         const dt = new Date(d.date);
         return dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
     });
     const values = footfall.map((d) => d.count);
 
-    new Chart(ctx, {
+    footfallChartInstance = new Chart(ctx, {
         type: "line",
         data: {
             labels,
@@ -173,11 +230,11 @@ function renderFootfallChart(footfall) {
                 {
                     label: "Patient Footfall",
                     data: values,
-                    borderColor: "#ff2a5f",
-                    backgroundColor: "rgba(255, 42, 95, 0.12)",
+                    borderColor: c.primaryRed,
+                    backgroundColor: c.primaryRedBg,
                     borderWidth: 3,
-                    pointBackgroundColor: "#ff2a5f",
-                    pointBorderColor: "#ffffff",
+                    pointBackgroundColor: c.primaryRed,
+                    pointBorderColor: c.pointBorder,
                     pointBorderWidth: 2,
                     pointRadius: 5,
                     pointHoverRadius: 8,
@@ -192,10 +249,10 @@ function renderFootfallChart(footfall) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: "#141924",
-                    titleColor: "#ffffff",
-                    bodyColor: "#f0f4f8",
-                    borderColor: "rgba(255, 42, 95, 0.4)",
+                    backgroundColor: c.cardBg,
+                    titleColor: c.text,
+                    bodyColor: c.text,
+                    borderColor: c.cardBorder,
                     borderWidth: 1,
                     titleFont: { family: "Inter", weight: "700" },
                     bodyFont: { family: "Inter" },
@@ -205,18 +262,18 @@ function renderFootfallChart(footfall) {
             },
             scales: {
                 x: {
-                    grid: { color: "rgba(255, 255, 255, 0.05)" },
+                    grid: { color: c.grid },
                     ticks: {
                         font: { family: "Inter", size: 11, weight: "500" },
-                        color: "#94a3b8",
+                        color: c.muted,
                     },
                 },
                 y: {
                     beginAtZero: true,
-                    grid: { color: "rgba(255, 255, 255, 0.05)" },
+                    grid: { color: c.grid },
                     ticks: {
                         font: { family: "Inter", size: 11, weight: "500" },
-                        color: "#94a3b8",
+                        color: c.muted,
                         stepSize: 1,
                     },
                 },
@@ -230,15 +287,20 @@ function renderDepartmentChart(departments) {
     const ctx = document.getElementById("deptChart");
     if (!ctx) return;
 
+    if (deptChartInstance) {
+        deptChartInstance.destroy();
+    }
+
+    const c = getChartColors();
     const labels = departments.map((d) => d.department);
     const values = departments.map((d) => d.count);
 
     const colors = [
-        "#ff2a5f", "#00d2ff", "#10b981", "#ffb703",
+        "#e11d48", "#00d2ff", "#10b981", "#ffb703",
         "#a855f7", "#ec4899", "#3b82f6", "#f97316",
     ];
 
-    new Chart(ctx, {
+    deptChartInstance = new Chart(ctx, {
         type: "doughnut",
         data: {
             labels,
@@ -247,7 +309,7 @@ function renderDepartmentChart(departments) {
                     data: values,
                     backgroundColor: colors.slice(0, labels.length),
                     borderWidth: 2,
-                    borderColor: "#141924",
+                    borderColor: c.cardBg,
                     hoverOffset: 8,
                 },
             ],
@@ -261,17 +323,17 @@ function renderDepartmentChart(departments) {
                     position: "bottom",
                     labels: {
                         font: { family: "Inter", size: 11, weight: "500" },
-                        color: "#94a3b8",
+                        color: c.muted,
                         padding: 14,
                         usePointStyle: true,
                         pointStyleWidth: 10,
                     },
                 },
                 tooltip: {
-                    backgroundColor: "#141924",
-                    titleColor: "#ffffff",
-                    bodyColor: "#f0f4f8",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: c.cardBg,
+                    titleColor: c.text,
+                    bodyColor: c.text,
+                    borderColor: c.cardBorder,
                     borderWidth: 1,
                     titleFont: { family: "Inter", weight: "700" },
                     bodyFont: { family: "Inter" },
