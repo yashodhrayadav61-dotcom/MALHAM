@@ -183,6 +183,109 @@ def auto_process_attendance(now=None):
                 )
 
 
+
+def get_staff_shift_info(staff_id, now=None):
+    if now is None:
+        now = datetime.now()
+    
+    staff = query_db("SELECT shift FROM staff_members WHERE id=?", (staff_id,), one=True)
+    if not staff:
+        return None
+        
+    shift = staff['shift'] or 'morning'
+    shift_start_str = SHIFT_STARTS.get(shift, "08:00")
+    try:
+        start_hour, start_minute = map(int, shift_start_str.split(':'))
+    except:
+        start_hour, start_minute = 8, 0
+        
+    shift_start_time = now.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+    
+    if shift == 'night' and now.hour < 12:
+        shift_start_time -= timedelta(days=1)
+        
+    date_str = shift_start_time.strftime("%Y-%m-%d")
+    window_end_time = shift_start_time + timedelta(minutes=ATTENDANCE_WINDOW_MINUTES)
+    
+    is_open = shift_start_time <= now <= window_end_time
+    if ATTENDANCE_DEMO_MODE:
+        is_open = True
+        
+    marked = query_db("SELECT status, check_in FROM staff_attendance WHERE staff_id=? AND date=?", (staff_id, date_str), one=True)
+    
+    leave = query_db(
+        "SELECT id FROM staff_leaves WHERE staff_id=? AND status='approved' AND start_date <= ? AND end_date >= ?",
+        (staff_id, date_str, date_str), one=True
+    )
+    
+    status_text = ""
+    if marked:
+        if marked['status'] == 'present':
+            status_text = f"Already checked in at {marked['check_in']}"
+        elif marked['status'] == 'on-leave':
+            status_text = "You are on approved leave today"
+        else:
+            status_text = "Absent"
+    elif leave:
+        status_text = "You are on approved leave today"
+        is_open = False
+    elif is_open:
+        mins = int((window_end_time - now).total_seconds() / 60)
+        status_text = f"Window open for {max(0, mins)} more minutes" if not ATTENDANCE_DEMO_MODE else "Window open (Demo Mode)"
+    elif now < shift_start_time:
+        status_text = f"Check-in opens at {shift_start_str} and closes at {window_end_time.strftime('%H:%M')}"
+    else:
+        status_text = f"Window closed at {window_end_time.strftime('%H:%M')}"
+        
+    return {
+        'shift': shift,
+        'shift_start': shift_start_str,
+        'window_open': is_open and not marked,
+        'status_text': status_text,
+        'marked_today': bool(marked),
+        'att_record': marked
+    }
+
+def auto_process_staff_attendance(now=None):
+    if now is None:
+        now = datetime.now()
+        
+    if ATTENDANCE_DEMO_MODE:
+        return
+        
+    staff_members = query_db("SELECT id, shift FROM staff_members")
+    for staff in staff_members:
+        staff_id = staff['id']
+        shift = staff['shift'] or 'morning'
+        shift_start_str = SHIFT_STARTS.get(shift, "08:00")
+        try:
+            h, m = map(int, shift_start_str.split(':'))
+        except:
+            h, m = 8, 0
+            
+        shift_start_time = now.replace(hour=h, minute=m, second=0, microsecond=0)
+        if shift == 'night' and now.hour < 12:
+            shift_start_time -= timedelta(days=1)
+            
+        date_str = shift_start_time.strftime("%Y-%m-%d")
+        window_end_time = shift_start_time + timedelta(minutes=ATTENDANCE_WINDOW_MINUTES)
+        
+        if now > window_end_time:
+            existing = query_db("SELECT id FROM staff_attendance WHERE staff_id=? AND date=?", (staff_id, date_str), one=True)
+            if not existing:
+                leave = query_db(
+                    "SELECT id FROM staff_leaves WHERE staff_id=? AND status='approved' AND start_date <= ? AND end_date >= ?",
+                    (staff_id, date_str, date_str), one=True
+                )
+                
+                att_status = 'on-leave' if leave else 'absent'
+                notes = 'Auto-marked as on-leave based on approved request' if leave else 'System auto-marked: did not check in'
+                
+                execute_db(
+                    "INSERT INTO staff_attendance (staff_id, date, status, notes) VALUES (?, ?, ?, ?)",
+                    (staff_id, date_str, att_status, notes)
+                )
+
 def get_doctor_shift_info(doctor_id, now=None):
     if now is None:
         now = datetime.now()
@@ -305,6 +408,7 @@ def logout():
 def dashboard():
     """Main dashboard page."""
     auto_process_attendance()
+    auto_process_staff_attendance()
 
     # --- Summary counts ---------------------------------------------------
     total_patients    = query_db("SELECT COUNT(*) AS c FROM patients", one=True)["c"]
@@ -374,11 +478,20 @@ def dashboard():
     today_date = datetime.now().strftime("%Y-%m-%d")
     overdue_followups = query_db("SELECT COUNT(*) AS c FROM followups WHERE (status='missed' OR (status='scheduled' AND followup_date < ?))", (today_date,), one=True)["c"]
 
+    # --- Staff summary -----------------------------------------------------
+    staff_total = query_db("SELECT COUNT(*) AS c FROM staff_members", one=True)["c"]
+    staff_present = query_db("SELECT COUNT(*) AS c FROM staff_attendance WHERE date=? AND status='present'", (today_date,), one=True)["c"]
     
     shift_info = None
     if g.user and g.user['doctor_id']:
         shift_info = get_doctor_shift_info(g.user['doctor_id'])
+    elif g.user and g.user['staff_id']:
+        shift_info = get_staff_shift_info(g.user['staff_id'])
         
+    pending_registrations_count = 0
+    if g.user and g.user['role'] in ['head_doctor', 'doctor']:
+        pending_registrations_count = query_db("SELECT COUNT(*) AS c FROM patient_registrations WHERE status = 'pending'", one=True)["c"]
+
     return render_template(
         "dashboard.html",
         shift_info=shift_info,
@@ -396,6 +509,8 @@ def dashboard():
         doctors_busy=doctors_busy,
         doctors_offduty=doctors_offduty,
         doctors_total=doctors_total,
+        staff_total=staff_total,
+        staff_present=staff_present,
         meds_in_stock=meds_in_stock,
         meds_low_stock=meds_low_stock,
         meds_out_stock=meds_out_stock,
@@ -407,7 +522,237 @@ def dashboard():
         upcoming_followups=upcoming_followups,
         dept_counts=dept_counts,
         footfall=footfall,
+        pending_registrations_count=pending_registrations_count,
     )
+
+
+
+# ── Staff Management Routes ──────────────────────────────────────────
+
+@app.route("/staff")
+@role_required('head_doctor', 'doctor', 'staff')
+def staff():
+    """Staff management view with roster, attendance, and leave requests."""
+    auto_process_staff_attendance()
+    active_tab = request.args.get("tab", "roster")
+    search_query = request.args.get("q", "").strip()
+    
+    if active_tab == 'leaves' and g.user['role'] == 'doctor':
+        return render_template('403.html'), 403
+
+    # Stat counters
+    staff_total = query_db("SELECT COUNT(*) AS c FROM staff_members", one=True)["c"]
+    staff_available = query_db("SELECT COUNT(*) AS c FROM staff_members WHERE status='available'", one=True)["c"]
+    
+    # Filtered Staff list query
+    query = "SELECT * FROM staff_members WHERE 1=1"
+    params = []
+
+    if search_query:
+        query += " AND (name LIKE ? OR staff_role LIKE ? OR department_or_ward LIKE ?)"
+        term = f"%{search_query}%"
+        params.extend([term, term, term])
+
+    shift_filter = request.args.get("shift", "").strip()
+    if shift_filter:
+        query += " AND shift = ?"
+        params.append(shift_filter)
+        
+    status_filter = request.args.get("status", "").strip()
+    if status_filter:
+        query += " AND status = ?"
+        params.append(status_filter)
+
+    query += " ORDER BY name ASC"
+    staff_list = query_db(query, params)
+
+    # Attendance
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    att_date = request.args.get("att_date", today_date)
+    
+    att_query = """
+        SELECT s.id as staff_id, s.name as staff_name, s.staff_role, s.shift,
+               a.status as att_status, a.check_in, a.check_out, a.notes
+        FROM staff_members s
+        LEFT JOIN staff_attendance a ON s.id = a.staff_id AND a.date = ?
+        ORDER BY s.name ASC
+    """
+    attendance_list = query_db(att_query, [att_date])
+
+    # Leaves
+    if g.user['role'] == 'staff':
+        leaves = query_db("""
+            SELECT l.*, s.name as staff_name, s.staff_role 
+            FROM staff_leaves l
+            JOIN staff_members s ON l.staff_id = s.id
+            WHERE l.staff_id = ?
+            ORDER BY l.created_at DESC
+        """, (g.user['staff_id'],))
+    else:
+        leaves = query_db("""
+            SELECT l.*, s.name as staff_name, s.staff_role 
+            FROM staff_leaves l
+            JOIN staff_members s ON l.staff_id = s.id
+            ORDER BY l.created_at DESC
+        """)
+
+    pending_leaves_count = sum(1 for l in leaves if l['status'] == 'pending')
+
+    shift_info = None
+    if g.user['role'] == 'staff' and g.user['staff_id']:
+        shift_info = get_staff_shift_info(g.user['staff_id'])
+        
+    return render_template(
+        "staff.html",
+        active_tab=active_tab,
+        staff_list=staff_list,
+        attendance_list=attendance_list,
+        leaves=leaves,
+        pending_leaves_count=pending_leaves_count,
+        staff_total=staff_total,
+        staff_available=staff_available,
+        att_date=att_date,
+        today_date=today_date,
+        shift_info=shift_info
+    )
+
+@app.route("/staff/attendance/self_mark", methods=["POST"])
+@role_required('staff')
+def staff_self_mark_attendance():
+    user = get_current_user()
+    staff_id = user['staff_id'] if user else None
+    if not staff_id:
+        return "Not authorized", 403
+        
+    now = datetime.now()
+    
+    staff = query_db("SELECT shift FROM staff_members WHERE id=?", (staff_id,), one=True)
+    if not staff:
+        return "Staff not found", 404
+        
+    shift = staff['shift'] or 'morning'
+    shift_start_str = SHIFT_STARTS.get(shift, "08:00")
+    try:
+        start_hour, start_minute = map(int, shift_start_str.split(':'))
+    except:
+        start_hour, start_minute = 8, 0
+        
+    shift_start_time = now.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+    
+    if shift == 'night' and now.hour < 12:
+        shift_start_time -= timedelta(days=1)
+        
+    date_str = shift_start_time.strftime("%Y-%m-%d")
+    
+    existing = query_db("SELECT id FROM staff_attendance WHERE staff_id=? AND date=?", (staff_id, date_str), one=True)
+    if existing:
+        return "Already marked today", 400
+        
+    window_end_time = shift_start_time + timedelta(minutes=ATTENDANCE_WINDOW_MINUTES)
+    
+    if not ATTENDANCE_DEMO_MODE:
+        if now < shift_start_time or now > window_end_time:
+            return "Check-in window is closed", 403
+            
+    leave = query_db(
+        "SELECT id FROM staff_leaves WHERE staff_id=? AND status='approved' AND start_date <= ? AND end_date >= ?",
+        (staff_id, date_str, date_str), one=True
+    )
+    if leave:
+        return "You are on approved leave today", 403
+            
+    check_in_time = now.strftime("%H:%M")
+    execute_db(
+        "INSERT INTO staff_attendance (staff_id, date, status, check_in, notes) VALUES (?, ?, 'present', ?, 'Self-marked')",
+        (staff_id, date_str, check_in_time)
+    )
+    execute_db("UPDATE staff_members SET status='busy' WHERE id=?", (staff_id,))
+    
+    log_activity("Attendance Self-Marked", f"Staff {staff_id} self-marked attendance for {date_str}", "system")
+    
+    return redirect(request.referrer or url_for("dashboard"))
+
+@app.route("/staff/attendance/mark", methods=["POST"])
+@role_required('head_doctor')
+def staff_mark_attendance():
+    staff_id = request.form.get("staff_id")
+    date_str = request.form.get("date")
+    status = request.form.get("status")
+    check_in = request.form.get("check_in") or None
+    check_out = request.form.get("check_out") or None
+    notes = request.form.get("notes", "").strip()
+
+    notes += " (Updated by head doctor)"
+
+    existing = query_db("SELECT id FROM staff_attendance WHERE staff_id=? AND date=?", (staff_id, date_str), one=True)
+    if existing:
+        execute_db(
+            """UPDATE staff_attendance 
+               SET status=?, check_in=?, check_out=?, notes=?
+               WHERE id=?""",
+            (status, check_in, check_out, notes, existing['id'])
+        )
+    else:
+        execute_db(
+            "INSERT INTO staff_attendance (staff_id, date, status, check_in, check_out, notes) VALUES (?, ?, ?, ?, ?, ?)",
+            (staff_id, date_str, status, check_in, check_out, notes)
+        )
+    
+    return redirect(url_for("staff", tab="attendance", att_date=date_str))
+
+@app.route("/staff/attendance/reset_demo", methods=["POST"])
+@role_required('head_doctor')
+def reset_staff_demo_attendance():
+    if not ATTENDANCE_DEMO_MODE:
+        return render_template('403.html'), 403
+        
+    staff_id = request.form.get("staff_id")
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    
+    if staff_id:
+        execute_db("DELETE FROM staff_attendance WHERE staff_id=? AND date=?", (staff_id, date_str))
+        execute_db("UPDATE staff_members SET status='available' WHERE id=?", (staff_id,))
+        
+        staff = query_db("SELECT name FROM staff_members WHERE id=?", (staff_id,), one=True)
+        staff_name = staff['name'] if staff else f"Staff #{staff_id}"
+        from flask import flash
+        flash(f"Successfully reset today's attendance for {staff_name}.", "success")
+        
+    return redirect(url_for("staff", tab="attendance"))
+
+@app.route("/staff/leave/request", methods=["POST"])
+@role_required('staff')
+def staff_request_leave():
+    staff_id = g.user['staff_id']
+    leave_type = request.form.get("leave_type")
+    start_date = request.form.get("start_date")
+    end_date = request.form.get("end_date")
+    reason = request.form.get("reason")
+
+    if start_date and end_date and leave_type:
+        execute_db(
+            "INSERT INTO staff_leaves (staff_id, leave_type, start_date, end_date, reason, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+            (staff_id, leave_type, start_date, end_date, reason)
+        )
+        log_activity("Leave Requested", f"Staff {staff_id} requested {leave_type} leave", "system")
+    return redirect(url_for("staff", tab="leaves"))
+
+@app.route("/staff/leave/review", methods=["POST"])
+@role_required('head_doctor')
+def staff_review_leave():
+    leave_id = request.form.get("leave_id")
+    action = request.form.get("action")  # approve or reject
+    notes = request.form.get("reviewer_notes", "")
+
+    new_status = 'approved' if action == 'approve' else 'rejected'
+    
+    if leave_id:
+        execute_db(
+            "UPDATE staff_leaves SET status=?, reviewer_notes=? WHERE id=?",
+            (new_status, notes, leave_id)
+        )
+        log_activity("Leave Reviewed", f"Staff leave {leave_id} {new_status}", "system")
+    return redirect(url_for("staff", tab="leaves"))
 
 
 # ── Placeholder routes for sidebar links ──────────────────────────────
@@ -505,6 +850,26 @@ def patients():
     # Doctors list for modal selects
     doctors_list = query_db("SELECT id, name, specialization FROM doctors ORDER BY name ASC")
 
+    user = get_current_user()
+    if user and user['role'] in ['head_doctor', 'doctor']:
+        pending_registrations = query_db("""
+            SELECT r.*, u.display_name AS requested_by_name
+            FROM patient_registrations r
+            JOIN users u ON r.requested_by_user_id = u.id
+            ORDER BY CASE r.status WHEN 'pending' THEN 1 ELSE 2 END, r.id DESC
+        """)
+        pending_registrations_count = query_db("SELECT COUNT(*) AS c FROM patient_registrations WHERE status = 'pending'", one=True)["c"]
+    else:
+        user_id = user['id'] if user else 0
+        pending_registrations = query_db("""
+            SELECT r.*, u.display_name AS requested_by_name
+            FROM patient_registrations r
+            JOIN users u ON r.requested_by_user_id = u.id
+            WHERE r.requested_by_user_id = ?
+            ORDER BY CASE r.status WHEN 'pending' THEN 1 ELSE 2 END, r.id DESC
+        """, [user_id])
+        pending_registrations_count = 0
+
     return render_template(
         "patients.html",
         active_tab=active_tab,
@@ -516,6 +881,8 @@ def patients():
         visits=visits_list,
         emergency_visits=emergency_list,
         doctors=doctors_list,
+        pending_registrations=pending_registrations,
+        pending_registrations_count=pending_registrations_count,
         search_query=search_query,
         visit_type_filter=visit_type_filter,
         status_filter=status_filter,
@@ -537,19 +904,68 @@ def add_patient():
     department = request.form.get("department", "General").strip()
 
     if name:
+        user = get_current_user()
+        if user and user['role'] == 'staff':
+            execute_db(
+                "INSERT INTO patient_registrations (name, age, gender, phone, address, blood_group, requested_by_user_id, status) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')",
+                (name, age, gender, phone, address, blood_group, user['id'])
+            )
+            log_activity("Patient Registration Requested", f"{name} requested by staff", "patient")
+            return redirect(url_for("patients", tab="pending"))
+        else:
+            max_id_row = query_db("SELECT MAX(id) AS m FROM patients", one=True)
+            next_num = (max_id_row["m"] or 0) + 1001
+            patient_code = f"P-{next_num}"
+            registered_on = datetime.now().strftime("%Y-%m-%d")
+
+            execute_db(
+                "INSERT INTO patients (patient_code, name, age, gender, phone, address, blood_group, registered_on, status, department) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'admitted', ?)",
+                (patient_code, name, age, gender, phone, address, blood_group, registered_on, department)
+            )
+            log_activity("Patient Registered", f"{name} ({patient_code}) registered", "patient")
+
+    return redirect(url_for("patients", tab="patients"))
+
+
+@app.route("/patients/registration/<int:reg_id>/review", methods=["POST"])
+@role_required('head_doctor', 'doctor')
+def review_patient_registration(reg_id):
+    """Review pending patient registrations."""
+    action = request.form.get("action")
+    notes = request.form.get("notes", "").strip()
+    user = get_current_user()
+    
+    reg = query_db("SELECT * FROM patient_registrations WHERE id=?", (reg_id,), one=True)
+    if not reg or reg['status'] != 'pending':
+        return redirect(url_for("patients", tab="pending"))
+
+    if action == "approve":
         max_id_row = query_db("SELECT MAX(id) AS m FROM patients", one=True)
         next_num = (max_id_row["m"] or 0) + 1001
         patient_code = f"P-{next_num}"
         registered_on = datetime.now().strftime("%Y-%m-%d")
 
-        execute_db(
+        patient_id = execute_db(
             "INSERT INTO patients (patient_code, name, age, gender, phone, address, blood_group, registered_on, status, department) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'admitted', ?)",
-            (patient_code, name, age, gender, phone, address, blood_group, registered_on, department)
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'admitted', 'General')",
+            (patient_code, reg['name'], reg['age'], reg['gender'], reg['phone'], reg['address'], reg['blood_group'], registered_on)
         )
-        log_activity("Patient Registered", f"{name} ({patient_code}) registered", "patient")
+        
+        execute_db(
+            "UPDATE patient_registrations SET status='approved', reviewed_by_user_id=?, reviewed_on=datetime('now', 'localtime'), patient_id=? WHERE id=?",
+            (user['id'], patient_id, reg_id)
+        )
+        log_activity("Patient Registration Approved", f"Registration for {reg['name']} approved by {user['role']}", "patient")
+    elif action == "reject":
+        execute_db(
+            "UPDATE patient_registrations SET status='rejected', reviewed_by_user_id=?, reviewed_on=datetime('now', 'localtime'), reviewer_notes=? WHERE id=?",
+            (user['id'], notes, reg_id)
+        )
+        log_activity("Patient Registration Rejected", f"Registration for {reg['name']} rejected", "patient")
 
-    return redirect(url_for("patients", tab="patients"))
+    return redirect(url_for("patients", tab="pending"))
 
 
 @app.route("/patients/<int:patient_id>/edit", methods=["POST"])
@@ -876,6 +1292,49 @@ def update_bed_status(bed_id):
 
 # ── Doctor Management Routes ──────────────────────────────────────────
 
+
+@app.route("/staff/add", methods=["POST"])
+@role_required('head_doctor', 'doctor')
+def add_staff():
+    name = request.form.get("name", "").strip()
+    staff_code = request.form.get("staff_code", "").strip()
+    staff_role = request.form.get("staff_role", "").strip()
+    department = request.form.get("department_or_ward", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    status = request.form.get("status", "available").strip()
+    shift = request.form.get("shift", "morning").strip()
+
+    if name and staff_role:
+        execute_db(
+            "INSERT INTO staff_members (staff_code, name, staff_role, department_or_ward, phone, status, shift) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (staff_code, name, staff_role, department, phone, status, shift)
+        )
+        log_activity("Staff Added", f"{name} ({staff_role}) registered", "staff")
+
+    return redirect(url_for("staff", tab="roster"))
+
+@app.route("/staff/<int:staff_id>/edit", methods=["POST"])
+@role_required('head_doctor', 'doctor')
+def edit_staff(staff_id):
+    name = request.form.get("name", "").strip()
+    staff_code = request.form.get("staff_code", "").strip()
+    staff_role = request.form.get("staff_role", "").strip()
+    department = request.form.get("department_or_ward", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    status = request.form.get("status", "available").strip()
+    shift = request.form.get("shift", "morning").strip()
+
+    if name and staff_role:
+        execute_db(
+            "UPDATE staff_members SET staff_code=?, name=?, staff_role=?, department_or_ward=?, phone=?, status=?, shift=? WHERE id=?",
+            (staff_code, name, staff_role, department, phone, status, shift, staff_id)
+        )
+        log_activity("Staff Edited", f"{name} details updated", "staff")
+
+    return redirect(url_for("staff", tab="roster"))
+
 @app.route("/doctors")
 @role_required('head_doctor', 'doctor', 'staff')
 def doctors():
@@ -983,7 +1442,7 @@ def doctors():
 
 
 @app.route("/doctors/add", methods=["POST"])
-@role_required('head_doctor', 'staff')
+@role_required('head_doctor')
 def add_doctor():
     """Add a new doctor to the roster."""
     name = request.form.get("name", "").strip()
@@ -1004,7 +1463,7 @@ def add_doctor():
 
 
 @app.route("/doctors/<int:doctor_id>/edit", methods=["POST"])
-@role_required('head_doctor', 'staff')
+@role_required('head_doctor')
 def edit_doctor(doctor_id):
     """Update existing doctor details."""
     name = request.form.get("name", "").strip()

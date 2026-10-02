@@ -64,7 +64,7 @@
                 <i class="fa-solid fa-notes-medical"></i> Log Patient Visit / Triage
             </button>
             <button class="btn btn-primary" onclick="openModal('addPatientModal')">
-                <i class="fa-solid fa-user-plus"></i> Register Patient
+                <i class="fa-solid fa-user-plus"></i> {% if current_user.role == 'staff' %}Request Patient Registration{% else %}Register Patient{% endif %}
             </button>
         </div>
     </div>
@@ -78,6 +78,18 @@
             <a href="{{ url_for('patients', tab='visits') }}" class="tab-item {% if active_tab == 'visits' %}active{% endif %}">
                 <i class="fa-solid fa-list-check"></i> All Visits & Log
             </a>
+            {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
+            <a href="{{ url_for('patients', tab='pending') }}" class="tab-item {% if active_tab == 'pending' %}active{% endif %}">
+                <i class="fa-solid fa-user-clock"></i> Pending Registrations
+                {% if pending_registrations_count > 0 %}
+                <span class="tab-badge-count">{{ pending_registrations_count }}</span>
+                {% endif %}
+            </a>
+            {% elif current_user and current_user.role == 'staff' %}
+            <a href="{{ url_for('patients', tab='pending') }}" class="tab-item {% if active_tab == 'pending' %}active{% endif %}">
+                <i class="fa-solid fa-user-clock"></i> My Registration Requests
+            </a>
+            {% endif %}
             <a href="{{ url_for('patients', tab='emergency') }}" class="tab-item {% if active_tab == 'emergency' %}active{% endif %}">
                 <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Emergency Triage
                 {% if active_emergency_count > 0 %}
@@ -418,6 +430,109 @@
     </div>
     {% endif %}
 
+    <!-- ── PENDING REGISTRATIONS TAB ───────────────────────────── -->
+    {% if active_tab == 'pending' %}
+    <div class="tab-content animate-in">
+        <div class="card">
+            <div class="card-header flex-between">
+                <div>
+                    {% if current_user.role == 'staff' %}
+                    <h3><i class="fa-solid fa-user-clock"></i> My Registration Requests</h3>
+                    <p class="subtitle">Track your submitted patient registration requests</p>
+                    {% else %}
+                    <h3><i class="fa-solid fa-user-clock"></i> Pending Patient Registrations</h3>
+                    <p class="subtitle">Review and approve patient registrations requested by staff</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                {% if pending_registrations %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Age/Gender</th>
+                            <th>Phone</th>
+                            <th>Requested By</th>
+                            <th>Requested On</th>
+                            <th>Status</th>
+                            {% if current_user.role in ['head_doctor', 'doctor'] %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reg in pending_registrations %}
+                        <tr>
+                            <td>
+                                <strong>{{ reg.name }}</strong>
+                                <br><small class="text-muted">{{ reg.address or 'No Address' }}</small>
+                            </td>
+                            <td>{{ reg.age }} Yrs<br><small class="text-muted">{{ reg.gender }}</small></td>
+                            <td>{{ reg.phone or 'N/A' }}</td>
+                            <td>{{ reg.requested_by_name }}</td>
+                            <td>{{ reg.requested_on }}</td>
+                            <td>
+                                <span class="badge-leave-status status-{{ reg.status }}">
+                                    {% if reg.status == 'pending' %}
+                                    <i class="fa-solid fa-hourglass-half"></i> Pending
+                                    {% elif reg.status == 'approved' %}
+                                    <i class="fa-solid fa-check"></i> Approved ({{ reg.patient_code }})
+                                    {% else %}
+                                    <i class="fa-solid fa-xmark"></i> Rejected
+                                    {% endif %}
+                                </span>
+                                {% if reg.reviewer_notes %}
+                                <br><small class="text-danger" style="display: block; margin-top: 4px; max-width: 150px;">Note: {{ reg.reviewer_notes }}</small>
+                                {% endif %}
+                            </td>
+                            {% if current_user.role in ['head_doctor', 'doctor'] %}
+                            <td>
+                                {% if reg.status == 'pending' %}
+                                <div class="action-btn-group">
+                                    <form method="POST" action="{{ url_for('review_patient_registration', reg_id=reg.id) }}" style="display:inline;">
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" class="btn btn-xs btn-success" title="Approve">
+                                            <i class="fa-solid fa-check"></i> Approve
+                                        </button>
+                                    </form>
+
+                                    <form method="POST" action="{{ url_for('review_patient_registration', reg_id=reg.id) }}" style="display:inline;" onsubmit="return confirmReject(this);">
+                                        <input type="hidden" name="action" value="reject">
+                                        <input type="hidden" name="notes" class="reject-notes-input">
+                                        <button type="submit" class="btn btn-xs btn-danger" title="Reject">
+                                            <i class="fa-solid fa-xmark"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <script>
+                function confirmReject(form) {
+                    const note = prompt("Please provide a reason for rejecting this registration:");
+                    if (note === null) return false;
+                    form.querySelector('.reject-notes-input').value = note;
+                    return true;
+                }
+                </script>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <h3>No Pending Requests</h3>
+                    <p>There are no patient registration requests pending your review.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 
 
@@ -486,7 +601,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal('addPatientModal')">Cancel</button>
-                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Register Patient</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> {% if current_user.role == 'staff' %}Request Patient Registration{% else %}Register Patient{% endif %}</button>
             </div>
         </form>
     </div>

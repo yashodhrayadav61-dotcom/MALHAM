@@ -14,9 +14,11 @@
         </a>
 
         <div class="actions-buttons" style="display:flex; gap:10px;">
+            {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
             <a href="{{ url_for('new_prescription', patient_id=patient.id) }}" class="btn btn-rose">
                 <i class="fa-solid fa-file-circle-plus"></i> Issue Prescription
             </a>
+            {% endif %}
             <button class="btn btn-primary" onclick="openModal('profileLogVisitModal')">
                 <i class="fa-solid fa-plus"></i> Log New Visit
             </button>
@@ -190,9 +192,11 @@
                     <i class="fa-solid fa-pills"></i>
                     <h3>No Prescriptions</h3>
                     <p>No active or past prescriptions issued yet.</p>
+                    {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
                     <a href="{{ url_for('new_prescription', patient_id=patient.id) }}" class="btn btn-sm btn-primary mt-10">
                         <i class="fa-solid fa-plus"></i> Create First Prescription
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>

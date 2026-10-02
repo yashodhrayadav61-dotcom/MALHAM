@@ -1120,6 +1120,25 @@ img { max-width: 100%; display: block; }
     background: var(--gray-100);
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
+a.stat-pill {
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+a.stat-pill:hover,
+a.stat-pill:focus-visible {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    outline: none;
+}
+a.stat-pill:active {
+    transform: translateY(0);
+}
+a.stat-pill.active {
+    box-shadow: inset 0 0 0 2px currentColor;
+    filter: brightness(1.1);
+}
 
 .stat-pill strong { font-weight: 700; }
 .sp-total { background: rgba(0, 210, 255, 0.12); color: #00d2ff; }

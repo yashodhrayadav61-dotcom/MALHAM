@@ -56,9 +56,11 @@
                 <span class="card-badge">{{ prescriptions|length }} Items Listed</span>
             </div>
 
+            {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
             <a href="{{ url_for('new_prescription') }}" class="btn btn-rose">
                 <i class="fa-solid fa-plus"></i> Issue New Prescription
             </a>
+            {% endif %}
         </div>
 
         <div class="card-body">
@@ -179,9 +181,11 @@
                 <i class="fa-solid fa-file-prescription text-rose-500"></i>
                 <h3>No Prescriptions Found</h3>
                 <p>No prescriptions match your search criteria.</p>
+                {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
                 <a href="{{ url_for('new_prescription') }}" class="btn btn-rose mt-10">
                     <i class="fa-solid fa-plus"></i> Issue New Prescription
                 </a>
+                {% endif %}
             </div>
             {% endif %}
 

@@ -93,6 +93,11 @@
                         <span>Doctors</span>
                     </a>
 
+                    <a href="/staff" class="nav-link {% if request.path == '/staff' %}active{% endif %}">
+                        <i class="fa-solid fa-user-nurse"></i>
+                        <span>Staff</span>
+                    </a>
+
                     <div class="nav-section-label">Management</div>
 
                     <a href="/medicines" class="nav-link {% if request.path == '/medicines' %}active{% endif %}">

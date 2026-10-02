@@ -37,6 +37,7 @@
                 <i class="fa-solid fa-print"></i> Print Prescription
             </button>
 
+            {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
             <!-- Status Dropdown Form -->
             <form method="POST" action="{{ url_for('update_prescription_status', prescription_id=rx.id) }}" class="status-change-form">
                 <select name="status" class="form-select status-select-pill status-{{ rx.status }}" onchange="this.form.submit()">
@@ -45,6 +46,15 @@
                     <option value="cancelled" {% if rx.status == 'cancelled' %}selected{% endif %}>🔴 Cancelled</option>
                 </select>
             </form>
+            {% else %}
+            <div class="status-select-pill status-{{ rx.status }}" style="display:inline-block; padding:8px 16px; border-radius:var(--radius-full);">
+                {% if rx.status == 'active' %}🟢 Active Regimen
+                {% elif rx.status == 'completed' %}🔵 Completed
+                {% elif rx.status == 'cancelled' %}🔴 Cancelled
+                {% else %}{{ rx.status|capitalize }}
+                {% endif %}
+            </div>
+            {% endif %}
 
         </div>
     </div>

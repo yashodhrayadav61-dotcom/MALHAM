@@ -128,6 +128,27 @@ def create_tables():
             FOREIGN KEY (prescription_item_id) REFERENCES prescription_items(id)
         );
 
+        -- Patient Registrations table
+        CREATE TABLE IF NOT EXISTS patient_registrations (
+            id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+            name                  TEXT NOT NULL,
+            age                   INTEGER NOT NULL,
+            gender                TEXT NOT NULL,
+            phone                 TEXT,
+            address               TEXT,
+            blood_group           TEXT,
+            requested_by_user_id  INTEGER NOT NULL,
+            requested_on          TEXT DEFAULT (datetime('now', 'localtime')),
+            status                TEXT DEFAULT 'pending',
+            reviewed_by_user_id   INTEGER,
+            reviewed_on           TEXT,
+            reviewer_notes        TEXT,
+            patient_id            INTEGER,
+            FOREIGN KEY (requested_by_user_id) REFERENCES users(id),
+            FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id),
+            FOREIGN KEY (patient_id) REFERENCES patients(id)
+        );
+
         -- Follow-ups table
         CREATE TABLE IF NOT EXISTS followups (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,7 +160,7 @@ def create_tables():
             purpose         TEXT,
             status          TEXT DEFAULT 'scheduled', -- scheduled / completed / missed / cancelled
             notes           TEXT,
-            created_at      TEXT DEFAULT (datetime('now')),
+            created_at      TEXT DEFAULT (datetime('now', 'localtime')),
             FOREIGN KEY (patient_id) REFERENCES patients(id),
             FOREIGN KEY (doctor_id)  REFERENCES doctors(id),
             FOREIGN KEY (prescription_id) REFERENCES prescriptions(id)
@@ -239,6 +260,44 @@ def create_tables():
             FOREIGN KEY (doctor_id) REFERENCES doctors(id)
         );
 
+        -- Staff Members table
+        CREATE TABLE IF NOT EXISTS staff_members (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            staff_code         TEXT UNIQUE NOT NULL,
+            name               TEXT NOT NULL,
+            staff_role         TEXT NOT NULL,
+            department_or_ward TEXT NOT NULL,
+            shift              TEXT NOT NULL,
+            phone              TEXT,
+            status             TEXT DEFAULT 'available'
+        );
+
+        -- Staff Attendance table
+        CREATE TABLE IF NOT EXISTS staff_attendance (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            staff_id    INTEGER NOT NULL,
+            date        TEXT NOT NULL,
+            status      TEXT DEFAULT 'present',
+            check_in    TEXT,
+            check_out   TEXT,
+            notes       TEXT,
+            FOREIGN KEY (staff_id) REFERENCES staff_members(id)
+        );
+
+        -- Staff Leaves table
+        CREATE TABLE IF NOT EXISTS staff_leaves (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            staff_id       INTEGER NOT NULL,
+            leave_type     TEXT NOT NULL,
+            start_date     TEXT NOT NULL,
+            end_date       TEXT NOT NULL,
+            reason         TEXT,
+            status         TEXT DEFAULT 'pending',
+            reviewer_notes TEXT,
+            created_at     TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (staff_id) REFERENCES staff_members(id)
+        );
+
         -- Users table (RBAC)
         CREATE TABLE IF NOT EXISTS users (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -248,9 +307,11 @@ def create_tables():
             display_name  TEXT NOT NULL,
             doctor_id     INTEGER,
             patient_id    INTEGER,
+            staff_id      INTEGER,
             created_at    TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (doctor_id)  REFERENCES doctors(id),
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
+            FOREIGN KEY (patient_id) REFERENCES patients(id),
+            FOREIGN KEY (staff_id)   REFERENCES staff_members(id)
         );
     """)
 
@@ -433,6 +494,7 @@ def seed_demo_data():
     )
 
     seed_attendance_and_leaves(cursor, now)
+    seed_staff_and_attendance(cursor, now)
     seed_patients_and_visits(cursor, now)
     seed_beds_extended(cursor, now)
     seed_medicines_extended(cursor, now)
@@ -889,6 +951,70 @@ def seed_followups_and_reminders_extended(cursor, now):
         )
 
 
+
+def seed_staff_and_attendance(cursor, now):
+    staff_count = cursor.execute("SELECT COUNT(*) FROM staff_members").fetchone()[0]
+    if staff_count == 0:
+        staff = [
+            ("S-101", "Nurse Sarah", "Nurse", "General", "morning", "9001002001", "available"),
+            ("S-102", "Nurse John", "Nurse", "ICU", "night", "9001002002", "busy"),
+            ("S-103", "Ward Boy Ali", "Ward Boy", "Emergency", "evening", "9001002003", "available"),
+            ("S-104", "Tech Mike", "Lab Technician", "Lab", "morning", "9001002004", "available"),
+            ("S-105", "Nurse Emily", "Nurse", "Maternity", "morning", "9001002005", "off-duty"),
+            ("S-106", "Pharm Dave", "Pharmacist", "Pharmacy", "afternoon", "9001002006", "available"),
+            ("S-107", "Nurse Joy", "Nurse", "Pediatric", "night", "9001002007", "available"),
+            ("S-108", "Recep Mark", "Receptionist", "Front Desk", "morning", "9001002008", "available"),
+            ("S-109", "Ward Boy Sam", "Ward Boy", "ICU", "night", "9001002009", "on-leave"),
+            ("S-110", "Nurse Maya", "Nurse", "Emergency", "evening", "9001002010", "available"),
+        ]
+        cursor.executemany(
+            "INSERT INTO staff_members (staff_code, name, staff_role, department_or_ward, shift, phone, status) VALUES (?,?,?,?,?,?,?)",
+            staff
+        )
+
+    att_count = cursor.execute("SELECT COUNT(*) FROM staff_attendance").fetchone()[0]
+    if att_count == 0:
+        today = now.strftime("%Y-%m-%d")
+        yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        
+        # 7 days history for Nurse Sarah (staff_id 1)
+        history = []
+        for i in range(1, 8):
+            d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            history.append((1, d, 'present', '08:15', '16:00', 'On time'))
+            
+        # TODAY's records for everyone except Nurse Sarah (1)
+        # 2: night (20:00), 3: evening (17:00), 4: morning (08:00), 5: morning, 6: afternoon (14:00)
+        # 7: night, 8: morning, 9: night (on leave), 10: evening
+        today_att = [
+            (2, today, 'present', '20:15', '06:00', 'Night shift'),
+            (3, today, 'present', '17:20', '23:00', 'Evening shift'),
+            (4, today, 'present', '08:10', '16:00', 'Morning shift'),
+            (5, today, 'present', '08:25', '16:00', 'Morning shift'),
+            (6, today, 'present', '14:15', '22:00', 'Afternoon shift'),
+            (7, today, 'present', '20:05', '06:00', 'Night shift'),
+            (8, today, 'present', '08:05', '16:00', 'Morning shift'),
+            (9, today, 'on-leave', None, None, 'Sick leave'),
+            (10, today, 'present', '17:15', '23:00', 'Evening shift'),
+        ]
+        
+        cursor.executemany(
+            "INSERT INTO staff_attendance (staff_id, date, status, check_in, check_out, notes) VALUES (?,?,?,?,?,?)",
+            history + today_att
+        )
+
+    leave_count = cursor.execute("SELECT COUNT(*) FROM staff_leaves").fetchone()[0]
+    if leave_count == 0:
+        leaves = [
+            (1, 'casual', (now + timedelta(days=5)).strftime("%Y-%m-%d"), (now + timedelta(days=6)).strftime("%Y-%m-%d"), "Family event", "pending", None),
+            (9, 'sick', today, (now + timedelta(days=2)).strftime("%Y-%m-%d"), "Fever", "approved", "Approved by Head Doc"),
+        ]
+        cursor.executemany(
+            "INSERT INTO staff_leaves (staff_id, leave_type, start_date, end_date, reason, status, reviewer_notes) VALUES (?,?,?,?,?,?,?)",
+            leaves
+        )
+
+
 def seed_users_extended(cursor):
     """Seed 4 demo accounts if not already seeded."""
     user_count = cursor.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -896,14 +1022,24 @@ def seed_users_extended(cursor):
         from werkzeug.security import generate_password_hash
         hashed_pass = generate_password_hash("password123")
         demo_users = [
-            ("head_doc", hashed_pass, "head_doctor", "Dr. Suresh Kumar (Head)", 1, None),
-            ("doc_anita", hashed_pass, "doctor", "Dr. Anita Desai", 2, None),
-            ("staff_nurse", hashed_pass, "staff", "Nurse Sarah", None, None),
-            ("patient_aarav", hashed_pass, "patient", "Aarav Sharma", None, 1),
+            ("head_doc", hashed_pass, "head_doctor", "Dr. Suresh Kumar (Head)", 1, None, None),
+            ("doc_anita", hashed_pass, "doctor", "Dr. Anita Desai", 2, None, None),
+            ("staff_nurse", hashed_pass, "staff", "Nurse Sarah", None, None, 1),
+            ("patient_aarav", hashed_pass, "patient", "Aarav Sharma", None, 1, None),
         ]
         cursor.executemany(
-            "INSERT INTO users (username, password_hash, role, display_name, doctor_id, patient_id) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users (username, password_hash, role, display_name, doctor_id, patient_id, staff_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
             demo_users
+        )
+        
+        # Seed Patient Registrations
+        # Nurse Sarah (user_id=3)
+        pending_registrations = [
+            ("Priya Patel", 32, "Female", "9876543212", "45 Park Street, Delhi", "O+", 3, "pending")
+        ]
+        cursor.executemany(
+            "INSERT INTO patient_registrations (name, age, gender, phone, address, blood_group, requested_by_user_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            pending_registrations
         )
 
 

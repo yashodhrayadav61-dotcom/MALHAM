@@ -1,46 +1,46 @@
 {% extends "base.html" %}
 
-{% block title %}Doctors Management{% endblock %}
-{% block page_title %}Doctors & Medical Staff{% endblock %}
-{% block page_subtitle %}Manage doctor roster, shift attendance, and leave approvals{% endblock %}
+{% block title %}Staff Management{% endblock %}
+{% block page_title %}Staff & Nurses{% endblock %}
+{% block page_subtitle %}Staff roster, shift attendance and leave{% endblock %}
 
 {% block content %}
-<div class="doctors-container">
+<div class="staff-container">
 
     <!-- ── Top Actions & Stats Row ─────────────────────────────── -->
     <div class="header-actions-bar">
         <div class="stats-mini-group">
-            <a href="{{ url_for('doctors', tab='roster', status='') }}" class="stat-pill sp-total {% if not request.args.get('status') %}active{% endif %}">
-                <i class="fa-solid fa-user-doctor"></i>
-                <span><strong>{{ doctors_total }}</strong> Total</span>
+            <a href="{{ url_for('staff', tab='roster', status='') }}" class="stat-pill sp-total {% if not request.args.get('status') %}active{% endif %}">
+                <i class="fa-solid fa-user-nurse"></i>
+                <span><strong>{{ staff_total }}</strong> Total</span>
             </a>
-            <a href="{{ url_for('doctors', tab='roster', status='available') }}" class="stat-pill sp-available {% if request.args.get('status') == 'available' %}active{% endif %}">
+            <a href="{{ url_for('staff', tab='roster', status='available') }}" class="stat-pill sp-available {% if request.args.get('status') == 'available' %}active{% endif %}">
                 <i class="fa-solid fa-circle-check"></i>
-                <span><strong>{{ doctors_available }}</strong> Available</span>
+                <span><strong>{{ staff_available }}</strong> Available</span>
             </a>
-            <a href="{{ url_for('doctors', tab='roster', status='busy') }}" class="stat-pill sp-busy {% if request.args.get('status') == 'busy' %}active{% endif %}">
+            <a href="{{ url_for('staff', tab='roster', status='busy') }}" class="stat-pill sp-busy {% if request.args.get('status') == 'busy' %}active{% endif %}">
                 <i class="fa-solid fa-stethoscope"></i>
-                <span><strong>{{ doctors_busy }}</strong> Busy</span>
+                <span><strong>{{ staff_busy }}</strong> Busy</span>
             </a>
-            <a href="{{ url_for('doctors', tab='roster', status='off-duty') }}" class="stat-pill sp-offduty {% if request.args.get('status') == 'off-duty' %}active{% endif %}">
+            <a href="{{ url_for('staff', tab='roster', status='off-duty') }}" class="stat-pill sp-offduty {% if request.args.get('status') == 'off-duty' %}active{% endif %}">
                 <i class="fa-solid fa-moon"></i>
-                <span><strong>{{ doctors_offduty }}</strong> Off Duty</span>
+                <span><strong>{{ staff_offduty }}</strong> Off Duty</span>
             </a>
-            <a href="{{ url_for('doctors', tab='roster', status='on-leave') }}" class="stat-pill sp-onleave {% if request.args.get('status') == 'on-leave' %}active{% endif %}">
+            <a href="{{ url_for('staff', tab='roster', status='on-leave') }}" class="stat-pill sp-onleave {% if request.args.get('status') == 'on-leave' %}active{% endif %}">
                 <i class="fa-solid fa-plane-departure"></i>
-                <span><strong>{{ doctors_onleave }}</strong> On Leave</span>
+                <span><strong>{{ staff_onleave }}</strong> On Leave</span>
             </a>
         </div>
 
         <div class="actions-buttons">
-            {% if current_user and current_user.role == 'doctor' %}
+            {% if current_user and current_user.role == 'staff' %}
             <button class="btn btn-secondary" onclick="openModal('requestLeaveModal')">
                 <i class="fa-solid fa-calendar-plus"></i> Request Leave
             </button>
             {% endif %}
-            {% if current_user and current_user.role == 'head_doctor' %}
-            <button class="btn btn-primary" onclick="openModal('addDoctorModal')">
-                <i class="fa-solid fa-plus"></i> Register Doctor
+            {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
+            <button class="btn btn-primary" onclick="openModal('addStaffModal')">
+                <i class="fa-solid fa-plus"></i> Add Staff
             </button>
             {% endif %}
         </div>
@@ -49,16 +49,16 @@
     <!-- ── Navigation Tabs ─────────────────────────────────────── -->
     <div class="nav-tabs-wrapper">
         <div class="nav-tabs">
-            <a href="{{ url_for('doctors', tab='roster') }}" class="tab-item {% if active_tab == 'roster' %}active{% endif %}">
-                <i class="fa-solid fa-address-book"></i> Doctor Roster
+            <a href="{{ url_for('staff', tab='roster') }}" class="tab-item {% if active_tab == 'roster' %}active{% endif %}">
+                <i class="fa-solid fa-address-book"></i> Staff Roster
             </a>
-            <a href="{{ url_for('doctors', tab='attendance', att_date=att_date) }}" class="tab-item {% if active_tab == 'attendance' %}active{% endif %}">
+            <a href="{{ url_for('staff', tab='attendance', att_date=att_date) }}" class="tab-item {% if active_tab == 'attendance' %}active{% endif %}">
                 <i class="fa-solid fa-clipboard-user"></i> Attendance Tracker
             </a>
-            {% if current_user and current_user.role != 'staff' %}
-            <a href="{{ url_for('doctors', tab='leaves') }}" class="tab-item {% if active_tab == 'leaves' %}active{% endif %}">
-                <i class="fa-solid fa-file-signature"></i> Leave Approvals
-                {% if pending_leaves_count > 0 %}
+            {% if current_user and current_user.role in ['head_doctor', 'staff'] %}
+            <a href="{{ url_for('staff', tab='leaves') }}" class="tab-item {% if active_tab == 'leaves' %}active{% endif %}">
+                <i class="fa-solid fa-file-signature"></i> {% if current_user.role == 'head_doctor' %}Leave Approvals{% else %}Leave Requests{% endif %}
+                {% if pending_leaves_count > 0 and current_user.role == 'head_doctor' %}
                 <span class="tab-badge-count">{{ pending_leaves_count }}</span>
                 {% endif %}
             </a>
@@ -67,26 +67,27 @@
     </div>
 
     <!-- ────────────────────────────────────────────────────────── -->
-    <!-- TAB 1: DOCTOR ROSTER                                      -->
+    <!-- TAB 1: STAFF ROSTER                                      -->
     <!-- ────────────────────────────────────────────────────────── -->
     {% if active_tab == 'roster' %}
     <div class="tab-content animate-in">
         
         <!-- Roster Filter Bar -->
-        <form method="GET" action="{{ url_for('doctors') }}" class="filter-card">
+        <form method="GET" action="{{ url_for('staff') }}" class="filter-card">
             <input type="hidden" name="tab" value="roster">
             <div class="filter-row">
                 <div class="filter-field search-field">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Search doctor name, email, phone..." class="form-control">
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Search staff name, email, phone..." class="form-control">
                 </div>
 
                 <div class="filter-field">
-                    <select name="specialization" class="form-select" onchange="this.form.submit()">
-                        <option value="">All Specializations</option>
-                        {% for spec in specializations %}
-                        <option value="{{ spec }}" {% if spec_filter == spec %}selected{% endif %}>{{ spec }}</option>
-                        {% endfor %}
+                    <select name="shift" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Shifts</option>
+                        <option value="morning" {% if request.args.get('shift') == 'morning' %}selected{% endif %}>Morning</option>
+                        <option value="afternoon" {% if request.args.get('shift') == 'afternoon' %}selected{% endif %}>Afternoon</option>
+                        <option value="evening" {% if request.args.get('shift') == 'evening' %}selected{% endif %}>Evening</option>
+                        <option value="night" {% if request.args.get('shift') == 'night' %}selected{% endif %}>Night</option>
                     </select>
                 </div>
 
@@ -110,63 +111,61 @@
                 </div>
 
                 {% if search_query or spec_filter or status_filter or shift_filter %}
-                <a href="{{ url_for('doctors', tab='roster') }}" class="btn btn-ghost" title="Reset Filters">
+                <a href="{{ url_for('staff', tab='roster') }}" class="btn btn-ghost" title="Reset Filters">
                     <i class="fa-solid fa-xmark"></i> Clear
                 </a>
                 {% endif %}
             </div>
         </form>
 
-        <!-- Doctors Roster Grid -->
-        {% if doctors %}
-        <div class="doctors-grid">
-            {% for doc in doctors %}
-            <div class="doctor-card card-status-{{ doc.status }}">
+        <!-- Staff Roster Grid -->
+        {% if staff_list %}
+        <div class="staff-grid">
+            {% for staff in staff_list %}
+            <div class="staff-card card-status-{{ staff.status }}">
                 <div class="doc-card-header">
                     <div class="doc-avatar">
-                        <i class="fa-solid fa-user-doctor"></i>
+                        <i class="fa-solid fa-user-nurse"></i>
                     </div>
                     <div class="doc-main-info">
-                        <h3 class="doc-name">{{ doc.name }}</h3>
-                        <span class="doc-spec">{{ doc.specialization }}</span>
+                        <h3 class="doc-name">{{ staff.name }}</h3>
+                        <span class="doc-spec">{{ staff.staff_role }}</span>
                     </div>
-                    <div class="doc-status-badge badge-{{ doc.status }}">
-                        <i class="fa-solid fa-circle"></i> {{ doc.status|capitalize }}
+                    <div class="doc-status-badge badge-{{ staff.status }}">
+                        <i class="fa-solid fa-circle"></i> {{ staff.status|capitalize }}
                     </div>
                 </div>
 
                 <div class="doc-card-body">
                     <div class="doc-detail-item">
                         <i class="fa-solid fa-clock"></i>
-                        <span>Shift: <strong class="text-capitalize">{{ doc.shift }}</strong></span>
+                        <span>Shift: <strong class="text-capitalize">{{ staff.shift }}</strong></span>
                     </div>
                     <div class="doc-detail-item">
                         <i class="fa-solid fa-phone"></i>
-                        <span>{{ doc.phone or 'N/A' }}</span>
+                        <span>{{ staff.phone or 'N/A' }}</span>
                     </div>
                     <div class="doc-detail-item">
                         <i class="fa-solid fa-envelope"></i>
-                        <span>{{ doc.email or 'N/A' }}</span>
+                        <span>{{ staff.email or 'N/A' }}</span>
                     </div>
                 </div>
 
-                {% if current_user and current_user.role in ['head_doctor', 'staff'] %}
+                {% if current_user and current_user.role in ['head_doctor', 'doctor'] %}
                 <div class="doc-card-footer">
                     <!-- Quick Status Selector -->
-                    <form method="POST" action="{{ url_for('update_doctor_status', doctor_id=doc.id) }}" class="quick-status-form">
+                    <form method="POST" action="{{ '#' }}" class="quick-status-form">
                         <select name="status" class="form-select-sm" onchange="this.form.submit()">
-                            <option value="available" {% if doc.status == 'available' %}selected{% endif %}>Set Available</option>
-                            <option value="busy" {% if doc.status == 'busy' %}selected{% endif %}>Set Busy</option>
-                            <option value="off-duty" {% if doc.status == 'off-duty' %}selected{% endif %}>Set Off-Duty</option>
-                            <option value="on-leave" {% if doc.status == 'on-leave' %}selected{% endif %}>Set On-Leave</option>
+                            <option value="available" {% if staff.status == 'available' %}selected{% endif %}>Set Available</option>
+                            <option value="busy" {% if staff.status == 'busy' %}selected{% endif %}>Set Busy</option>
+                            <option value="off-duty" {% if staff.status == 'off-duty' %}selected{% endif %}>Set Off-Duty</option>
+                            <option value="on-leave" {% if staff.status == 'on-leave' %}selected{% endif %}>Set On-Leave</option>
                         </select>
                     </form>
 
-                    {% if current_user.role == 'head_doctor' %}
-                    <button class="btn-icon" onclick='openEditDoctorModal({{ doc|tojson }})' title="Edit Doctor Details">
+                    <button class="btn-icon" onclick='openEditStaffModal({{ staff|tojson }})' title="Edit Staff Details">
                         <i class="fa-solid fa-pen-to-square"></i>
                     </button>
-                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -174,8 +173,8 @@
         </div>
         {% else %}
         <div class="empty-state">
-            <i class="fa-solid fa-user-doctor-hair"></i>
-            <h3>No Doctors Found</h3>
+            <i class="fa-solid fa-user-nurse"></i>
+            <h3>No Staff Found</h3>
             <p>No medical staff matches your current filter criteria.</p>
         </div>
         {% endif %}
@@ -199,7 +198,7 @@
                     <p class="subtitle">Record daily attendance, check-in, and check-out times</p>
                 </div>
 
-                <form method="GET" action="{{ url_for('doctors') }}" class="date-picker-form">
+                <form method="GET" action="{{ url_for('staff') }}" class="date-picker-form">
                     <input type="hidden" name="tab" value="attendance">
                     <label for="att_date" class="date-label"><i class="fa-solid fa-calendar"></i> Date:</label>
                     <input type="date" id="att_date" name="att_date" value="{{ att_date }}" onchange="this.form.submit()" class="form-control-sm">
@@ -214,27 +213,27 @@
                 <div class="p-20" style="border-bottom: 1px solid var(--theme-border); background: var(--theme-panel-alt); display: flex; align-items: center; justify-content: space-between;">
                     <div>
                         <h4 style="margin: 0; color: var(--amber-500);"><i class="fa-solid fa-triangle-exclamation"></i> Demo Reset</h4>
-                        <p class="text-sm text-muted" style="margin-top: 4px;">Delete today's attendance record for a doctor to allow them to check in again.</p>
+                        <p class="text-sm text-muted" style="margin-top: 4px;">Delete today's attendance record for a staff member to allow them to check in again.</p>
                     </div>
-                    <form method="POST" action="{{ url_for('reset_demo_attendance') }}" style="display: flex; gap: 10px;">
-                        <select name="doctor_id" class="form-select" required>
-                            <option value="">Select Doctor...</option>
+                    <form method="POST" action="{{ url_for('reset_staff_demo_attendance') }}" style="display: flex; gap: 10px;">
+                        <select name="staff_id" class="form-select" required>
+                            <option value="">Select Staff...</option>
                             {% for row in attendance_list %}
-                                <option value="{{ row.doctor_id }}">{{ row.doctor_name }}</option>
+                                <option value="{{ row.staff_id }}">{{ row.staff_name }}</option>
                             {% endfor %}
                         </select>
                         <button type="submit" class="btn btn-outline"><i class="fa-solid fa-trash"></i> Reset</button>
                     </form>
                 </div>
                 {% endif %}
-                {% if current_user.role == 'doctor' and shift_info and att_date == today_date %}
+                {% if current_user.role == 'staff' and shift_info and att_date == today_date %}
                 <div class="p-20" style="border-bottom: 1px solid var(--theme-border); background: var(--theme-panel-alt);">
                     <div class="flex-between flex-align-center">
                         <div>
                             <h4 style="margin: 0; color: var(--theme-primary);">My Today's Shift: <strong>{{ shift_info.shift|capitalize }}</strong> ({{ shift_info.shift_start }})</h4>
                         </div>
                         <div>
-                            <form method="POST" action="{{ url_for('self_mark_attendance') }}" style="display: flex; align-items: center; gap: 10px;">
+                            <form method="POST" action="{{ url_for('staff_self_mark_attendance') }}" style="display: flex; align-items: center; gap: 10px;">
                                 {% if shift_info.window_open %}
                                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Mark My Attendance</button>
                                 {% else %}
@@ -250,8 +249,8 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Doctor</th>
-                            <th>Specialization</th>
+                            <th>Staff</th>
+                            <th>Role</th>
                             <th>Shift</th>
                             <th>Status ({{ att_date }})</th>
                             <th>Check-in</th>
@@ -265,8 +264,8 @@
                     <tbody>
                         {% for row in attendance_list %}
                         <tr>
-                            <td class="font-semibold">{{ row.doctor_name }}</td>
-                            <td>{{ row.specialization }}</td>
+                            <td class="font-semibold">{{ row.staff_name }}</td>
+                            <td>{{ row.staff_role }}</td>
                             <td><span class="badge-shift shift-{{ row.shift }}">{{ row.shift|capitalize }}</span></td>
                             <td>
                                 {% set st = row.att_status or 'Not Marked' %}
@@ -280,7 +279,7 @@
                             {% if current_user.role == 'head_doctor' %}
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" 
-                                        onclick='openMarkAttendanceModal({{ row.doctor_id }}, "{{ row.doctor_name|e }}", "{{ att_date }}", "{{ row.att_status or "present" }}", "{{ row.check_in or "" }}", "{{ row.check_out or "" }}", "{{ row.notes or "" }}")'>
+                                        onclick='openMarkAttendanceModal({{ row.staff_id }}, "{{ row.staff_name|e }}", "{{ att_date }}", "{{ row.att_status or "present" }}", "{{ row.check_in or "" }}", "{{ row.check_out or "" }}", "{{ row.notes or "" }}")'>
                                     <i class="fa-solid fa-pen"></i> Mark
                                 </button>
                             </td>
@@ -303,20 +302,22 @@
         <div class="card">
             <div class="card-header flex-between">
                 <div>
-                    <h3><i class="fa-solid fa-file-signature"></i> Doctor Leave Requests</h3>
-                    <p class="subtitle">Review and manage doctor leave applications</p>
+                    <h3><i class="fa-solid fa-file-signature"></i> Staff Leave Requests</h3>
+                    <p class="subtitle">Review and manage staff leave applications</p>
                 </div>
+                {% if current_user.role == 'staff' %}
                 <button class="btn btn-secondary btn-sm" onclick="openModal('requestLeaveModal')">
                     <i class="fa-solid fa-plus"></i> New Leave Request
                 </button>
+                {% endif %}
             </div>
 
             <div class="card-body p-0">
-                {% if leave_requests %}
+                {% if leaves %}
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Doctor</th>
+                            <th>Staff</th>
                             <th>Leave Type</th>
                             <th>Duration</th>
                             <th>Reason</th>
@@ -326,10 +327,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for leave in leave_requests %}
+                        {% for leave in leaves %}
                         <tr class="leave-row-{{ leave.status }}">
                             <td>
-                                <div class="font-semibold">{{ leave.doctor_name }}</div>
+                                <div class="font-semibold">{{ leave.staff_name }}</div>
                                 <div class="text-xs text-muted">{{ leave.specialization }}</div>
                             </td>
                             <td>
@@ -357,14 +358,14 @@
                                 {% if leave.status == 'pending' %}
                                     {% if current_user and current_user.role == 'head_doctor' %}
                                     <div class="action-btn-group">
-                                        <form method="POST" action="{{ url_for('review_leave', leave_id=leave.id) }}" style="display:inline;">
+                                        <form method="POST" action="{{ url_for('staff_review_leave', leave_id=leave.id) }}" style="display:inline;">
                                             <input type="hidden" name="action" value="approve">
                                             <button type="submit" class="btn btn-xs btn-success" title="Approve Leave">
                                                 <i class="fa-solid fa-check"></i> Approve
                                             </button>
                                         </form>
 
-                                        <form method="POST" action="{{ url_for('review_leave', leave_id=leave.id) }}" style="display:inline;">
+                                        <form method="POST" action="{{ url_for('staff_review_leave', leave_id=leave.id) }}" style="display:inline;">
                                             <input type="hidden" name="action" value="reject">
                                             <button type="submit" class="btn btn-xs btn-danger" title="Reject Leave">
                                                 <i class="fa-solid fa-xmark"></i> Reject
@@ -391,7 +392,7 @@
                 <div class="empty-state">
                     <i class="fa-solid fa-calendar-check"></i>
                     <h3>No Leave Requests</h3>
-                    <p>There are currently no doctor leave requests submitted.</p>
+                    <p>There are currently no staff leave requests submitted.</p>
                 </div>
                 {% endif %}
             </div>
@@ -403,15 +404,15 @@
 
 
 <!-- ────────────────────────────────────────────────────────────── -->
-<!-- MODAL: ADD DOCTOR                                              -->
+<!-- MODAL: ADD STAFF                                              -->
 <!-- ────────────────────────────────────────────────────────────── -->
-<div class="modal-backdrop" id="addDoctorModal">
+<div class="modal-backdrop" id="addStaffModal">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h3><i class="fa-solid fa-user-plus"></i> Register New Doctor</h3>
-            <button class="modal-close" onclick="closeModal('addDoctorModal')">&times;</button>
+            <h3><i class="fa-solid fa-user-plus"></i> Add New Staff</h3>
+            <button class="modal-close" onclick="closeModal('addStaffModal')">&times;</button>
         </div>
-        <form method="POST" action="{{ url_for('add_doctor') }}">
+        <form method="POST" action="{{ url_for('add_staff') }}">
             <div class="modal-body">
                 <div class="form-group">
                     <label>Full Name *</label>
@@ -436,7 +437,7 @@
 
                     <div class="form-group col-6">
                         <label>Email Address</label>
-                        <input type="email" name="email" placeholder="doctor@malham.in" class="form-control">
+                        <input type="email" name="email" placeholder="staff@malham.in" class="form-control">
                     </div>
                 </div>
 
@@ -461,8 +462,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-ghost" onclick="closeModal('addDoctorModal')">Cancel</button>
-                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Register Doctor</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addStaffModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Staff</button>
             </div>
         </form>
     </div>
@@ -470,15 +471,15 @@
 
 
 <!-- ────────────────────────────────────────────────────────────── -->
-<!-- MODAL: EDIT DOCTOR                                             -->
+<!-- MODAL: EDIT STAFF                                             -->
 <!-- ────────────────────────────────────────────────────────────── -->
-<div class="modal-backdrop" id="editDoctorModal">
+<div class="modal-backdrop" id="editStaffModal">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h3><i class="fa-solid fa-user-pen"></i> Edit Doctor Details</h3>
-            <button class="modal-close" onclick="closeModal('editDoctorModal')">&times;</button>
+            <h3><i class="fa-solid fa-user-pen"></i> Edit Staff Details</h3>
+            <button class="modal-close" onclick="closeModal('editStaffModal')">&times;</button>
         </div>
-        <form id="editDoctorForm" method="POST" action="">
+        <form id="editStaffForm" method="POST" action="">
             <div class="modal-body">
                 <div class="form-group">
                     <label>Full Name *</label>
@@ -524,7 +525,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-ghost" onclick="closeModal('editDoctorModal')">Cancel</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editStaffModal')">Cancel</button>
                 <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
             </div>
         </form>
@@ -538,17 +539,17 @@
 <div class="modal-backdrop" id="markAttendanceModal">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h3><i class="fa-solid fa-clipboard-check"></i> Mark Doctor Attendance</h3>
+            <h3><i class="fa-solid fa-clipboard-check"></i> Mark Staff Attendance</h3>
             <button class="modal-close" onclick="closeModal('markAttendanceModal')">&times;</button>
         </div>
-        <form method="POST" action="{{ url_for('mark_attendance') }}">
-            <input type="hidden" id="att_doctor_id" name="doctor_id">
+        <form method="POST" action="{{ url_for('staff_mark_attendance') }}">
+            <input type="hidden" id="att_staff_id" name="staff_id">
             <input type="hidden" id="att_modal_date" name="date">
 
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Doctor</label>
-                    <input type="text" id="att_doctor_name" class="form-control" readonly style="background:var(--gray-100);">
+                    <label>Staff</label>
+                    <input type="text" id="att_staff_name" class="form-control" readonly style="background:var(--gray-100);">
                 </div>
 
                 <div class="form-row">
@@ -600,21 +601,11 @@
 <div class="modal-backdrop" id="requestLeaveModal">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h3><i class="fa-solid fa-calendar-plus"></i> Request Doctor Leave</h3>
+            <h3><i class="fa-solid fa-calendar-plus"></i> Request Staff Leave</h3>
             <button class="modal-close" onclick="closeModal('requestLeaveModal')">&times;</button>
         </div>
-        <form method="POST" action="{{ url_for('request_leave') }}">
+        <form method="POST" action="{{ url_for('staff_request_leave') }}">
             <div class="modal-body">
-                <div class="form-group">
-                    <label>Select Doctor *</label>
-                    <select name="doctor_id" required class="form-select">
-                        <option value="">-- Select Doctor --</option>
-                        {% for doc in doctors %}
-                        <option value="{{ doc.id }}">{{ doc.name }} ({{ doc.specialization }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
                 <div class="form-group">
                     <label>Leave Type *</label>
                     <select name="leave_type" required class="form-select">
@@ -659,20 +650,20 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 
-function openEditDoctorModal(doc) {
-    document.getElementById('editDoctorForm').action = '/doctors/' + doc.id + '/edit';
-    document.getElementById('edit_name').value = doc.name || '';
-    document.getElementById('edit_specialization').value = doc.specialization || '';
-    document.getElementById('edit_phone').value = doc.phone || '';
-    document.getElementById('edit_email').value = doc.email || '';
-    document.getElementById('edit_status').value = doc.status || 'available';
-    document.getElementById('edit_shift').value = doc.shift || 'morning';
-    openModal('editDoctorModal');
+function openEditStaffModal(doc) {
+    document.getElementById('editStaffForm').action = '/staff/' + staff.id + '/edit';
+    document.getElementById('edit_name').value = staff.name || '';
+    document.getElementById('edit_specialization').value = staff.staff_role || '';
+    document.getElementById('edit_phone').value = staff.phone || '';
+    document.getElementById('edit_email').value = staff.email || '';
+    document.getElementById('edit_status').value = staff.status || 'available';
+    document.getElementById('edit_shift').value = staff.shift || 'morning';
+    openModal('editStaffModal');
 }
 
-function openMarkAttendanceModal(doctorId, doctorName, attDate, currentAttStatus, checkIn, checkOut, notes) {
-    document.getElementById('att_doctor_id').value = doctorId;
-    document.getElementById('att_doctor_name').value = doctorName;
+function openMarkAttendanceModal(staffId, staffName, attDate, currentAttStatus, checkIn, checkOut, notes) {
+    document.getElementById('att_staff_id').value = staffId;
+    document.getElementById('att_staff_name').value = staffName;
     document.getElementById('att_modal_date').value = attDate;
     document.getElementById('att_display_date').value = attDate;
     document.getElementById('att_status_select').value = currentAttStatus || 'present';
