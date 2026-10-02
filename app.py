@@ -1871,6 +1871,26 @@ def api_dashboard_stats():
     return jsonify(departments=dept_counts, footfall=footfall, beds=bed_stats)
 
 
+# ── Assistant Endpoint (Patient Only) ─────────────────────────────────
+
+@app.route("/api/assistant", methods=["POST"])
+@role_required("patient")
+def api_assistant():
+    from assistant_service import handle_assistant_query
+    
+    data = request.get_json() or {}
+    message = data.get("message", "")
+    
+    user = get_current_user()
+    patient_id = user['patient_id'] if (user and 'patient_id' in user.keys()) else None
+    
+    if not patient_id:
+        return jsonify({"reply": "I'm sorry, your account is not linked to a patient profile."}), 400
+        
+    reply = handle_assistant_query(patient_id, message)
+    return jsonify({"reply": reply})
+
+
 # ── Entry Point ───────────────────────────────────────────────────────
 
 if __name__ == "__main__":

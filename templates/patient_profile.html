@@ -49,6 +49,22 @@
         </div>
     </div>
 
+    {% if current_user and current_user.role == 'patient' %}
+    <!-- Helpline Card (Patient Only) -->
+    <div class="card animate-in" style="margin-bottom: 24px; border-left: 4px solid var(--theme-primary);">
+        <div class="card-body">
+            <h3 style="margin-top: 0; margin-bottom: 12px; color: var(--theme-text);"><i class="fa-solid fa-headset"></i> Hospital Helpline</h3>
+            <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 12px;">
+                <a href="tel:1800-000-0000" style="color: var(--theme-text); text-decoration: none;"><i class="fa-solid fa-phone"></i> 1800-000-0000</a> 
+                <span style="font-size: 0.85rem; color: var(--theme-text-muted); font-weight: normal; margin-left: 8px;">(Call now)</span>
+            </div>
+            <div style="color: var(--theme-primary); font-weight: bold; padding-top: 12px; border-top: 1px dashed var(--theme-border);">
+                🚨 Emergency: 112 &nbsp;|&nbsp; Ambulance: 102
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- ── Section Grid: Visits History + Prescriptions ───────────── -->
     <div class="section-grid-2">
 
