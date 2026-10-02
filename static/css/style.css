@@ -460,7 +460,7 @@ img { max-width: 100%; display: block; }
 
 .welcome-text p {
     font-size: .9rem;
-    color: rgba(255,255,255,.75);
+    color: var(--theme-text-muted);
     max-width: 480px;
 }
 
@@ -3463,3 +3463,19 @@ body.dashboard-entering .app-wrapper {
     to { opacity: 1; }
 }
 
+/* ── Light Theme Text Fixes (Safety Net) ──────────────────────────── */
+:root[data-theme="light"] .sidebar .brand-tagline, 
+:root[data-theme="light"] .sidebar-brand p, 
+:root[data-theme="light"] .welcome-banner p,
+:root[data-theme="light"] .welcome-text p { 
+    color: #5b5b66 !important; 
+    -webkit-text-fill-color: #5b5b66 !important; 
+}
+
+:root[data-theme="light"] .sidebar .brand-name, 
+:root[data-theme="light"] .welcome-banner h1, 
+:root[data-theme="light"] .welcome-banner h2,
+:root[data-theme="light"] .welcome-text h2 { 
+    color: #1a1a1f !important; 
+    -webkit-text-fill-color: #1a1a1f !important; 
+}
