@@ -91,6 +91,34 @@
 }
 
 :root[data-theme="light"] {
+
+    /* Risk Badges Light Theme Overrides */
+    --risk-stopped-bg: rgba(220, 38, 38, 0.1);
+    --risk-stopped-color: #b91c1c;
+    --risk-stopped-border: rgba(220, 38, 38, 0.2);
+    
+    --risk-missed-bg: rgba(217, 119, 6, 0.1);
+    --risk-missed-color: #b45309;
+    --risk-missed-border: rgba(217, 119, 6, 0.2);
+    
+    --risk-overdue-bg: rgba(124, 58, 237, 0.1);
+    --risk-overdue-color: #6d28d9;
+    --risk-overdue-border: rgba(124, 58, 237, 0.2);
+
+
+    /* WhatsApp Light Theme Overrides */
+    --wa-bg: #e5ddd5;
+    --wa-border: #d1d7db;
+    --wa-sidebar-bg: #ffffff;
+    --wa-header-bg: #f0f2f5;
+    --wa-text: #111b21;
+    --wa-item-border: #f2f2f2;
+    --wa-item-hover: #f5f6f6;
+    --wa-item-active: #f0f2f5;
+    --wa-bubble-sent-bg: #d9fdd3;
+    --wa-bubble-recv-bg: #ffffff;
+    --wa-bubble-text: #111b21;
+
     /* Main Theme System Variables */
     --theme-bg: #ffffff;
     --theme-panel: #fdf4f5;
@@ -2295,8 +2323,8 @@ img { max-width: 100%; display: block; }
 
 /* Card Notice Banner */
 .card-notice-banner {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: #ffffff;
+    background: var(--banner-bg, linear-gradient(135deg, #1e293b 0%, #0f172a 100%));
+    color: var(--banner-text, #ffffff);
     border: 1px solid rgba(255, 42, 95, 0.4);
     box-shadow: 0 4px 15px rgba(255, 42, 95, 0.1);
 }
@@ -2787,14 +2815,14 @@ img { max-width: 100%; display: block; }
 
 /* At-Risk Patients Panel */
 .card-at-risk {
-    background: linear-gradient(135deg, #1e1b2e 0%, #171120 100%);
+    background: var(--at-risk-bg, linear-gradient(135deg, #1e1b2e 0%, #171120 100%));
     border: 1px solid rgba(244, 63, 94, 0.4);
     box-shadow: 0 4px 20px rgba(244, 63, 94, 0.15);
 }
 
 .badge-risk-count {
-    background: #ef4444;
-    color: #ffffff;
+    background: var(--at-risk-badge-bg, #ef4444);
+    color: var(--at-risk-badge-text, #ffffff);
     padding: 4px 12px;
     border-radius: var(--radius-full);
     font-size: 0.8rem;
@@ -2809,8 +2837,8 @@ img { max-width: 100%; display: block; }
 }
 
 .at-risk-card {
-    background: #211a2f;
-    border: 1px solid #36294d;
+    background: var(--at-risk-card-bg, #211a2f);
+    border: 1px solid var(--at-risk-card-border, #36294d);
     border-radius: var(--radius-md);
     padding: 14px 16px;
     transition: all 0.2s ease;
@@ -2836,21 +2864,21 @@ img { max-width: 100%; display: block; }
     gap: 6px;
 }
 
-.risk-stopped { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
-.risk-missed-dose { background: rgba(245, 158, 11, 0.2); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.4); }
-.risk-overdue-fu { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4); }
+.risk-stopped { background: var(--risk-stopped-bg, rgba(239, 68, 68, 0.2)); color: var(--risk-stopped-color, #fca5a5); border: 1px solid var(--risk-stopped-border, rgba(239, 68, 68, 0.4)); }
+.risk-missed-dose { background: var(--risk-missed-bg, rgba(245, 158, 11, 0.2)); color: var(--risk-missed-color, #fde68a); border: 1px solid var(--risk-missed-border, rgba(245, 158, 11, 0.4)); }
+.risk-overdue-fu { background: var(--risk-overdue-bg, rgba(139, 92, 246, 0.2)); color: var(--risk-overdue-color, #c4b5fd); border: 1px solid var(--risk-overdue-border, rgba(139, 92, 246, 0.4)); }
 
 /* Custom Nav Tabs */
 .nav-tabs-custom {
     display: flex;
-    background: #0f172a;
-    border-bottom: 1px solid var(--gray-700);
+    background: var(--nav-tabs-bg, #0f172a);
+    border-bottom: 1px solid var(--nav-tabs-border, var(--gray-700));
     overflow-x: auto;
 }
 
 .tab-link {
     padding: 14px 22px;
-    color: #94a3b8;
+    color: var(--tab-link-color, #94a3b8);
     font-weight: 600;
     font-size: 0.9rem;
     display: flex;
@@ -2862,8 +2890,8 @@ img { max-width: 100%; display: block; }
 }
 
 .tab-link:hover {
-    color: #f8fafc;
-    background: rgba(255, 255, 255, 0.03);
+    color: var(--tab-link-hover-color, #f8fafc);
+    background: var(--tab-link-hover-bg, rgba(255, 255, 255, 0.03));
 }
 
 .tab-link.active {
@@ -2873,16 +2901,19 @@ img { max-width: 100%; display: block; }
 }
 
 .tab-badge {
-    background: var(--gray-800);
-    color: #cbd5e1;
+    background: var(--tab-badge-bg, var(--gray-800));
+    color: var(--tab-badge-color, #cbd5e1);
     font-size: 0.72rem;
     padding: 2px 8px;
     border-radius: var(--radius-full);
 }
 
 .tab-link.active .tab-badge {
-    background: var(--rx-neon-red);
-    color: #ffffff;
+    background: var(--tab-badge-bg, var(--gray-800));
+    color: var(--tab-badge-color, #cbd5e1);
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
 }
 
 /* Reminder & Checkin Badges */
@@ -2916,25 +2947,25 @@ img { max-width: 100%; display: block; }
     display: grid;
     grid-template-columns: 280px 1fr;
     gap: 0;
-    background: #0b141a;
+    background: var(--wa-bg, #0b141a);
     border-radius: var(--radius-lg);
-    border: 1px solid #1f2c34;
+    border: 1px solid var(--wa-border, #1f2c34);
     overflow: hidden;
     min-height: 480px;
 }
 
 .chat-sidebar-list {
-    background: #111b21;
-    border-right: 1px solid #222d34;
+    background: var(--wa-sidebar-bg, #111b21);
+    border-right: 1px solid var(--wa-border, #222d34);
     display: flex;
     flex-direction: column;
 }
 
 .chat-header {
     padding: 14px 16px;
-    background: #202c33;
-    color: #e9edef;
-    border-bottom: 1px solid #222d34;
+    background: var(--wa-header-bg, #202c33);
+    color: var(--wa-text, #e9edef);
+    border-bottom: 1px solid var(--wa-border, #222d34);
 }
 
 .chat-thread-item {
@@ -2943,16 +2974,17 @@ img { max-width: 100%; display: block; }
     gap: 12px;
     padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid #182229;
+    border-bottom: 1px solid var(--wa-item-border, #182229);
     transition: background 0.2s ease;
+    background: var(--wa-sidebar-bg, #111b21);
 }
 
 .chat-thread-item:hover {
-    background: #202c33;
+    background: var(--wa-item-hover, #202c33);
 }
 
 .chat-thread-item.active {
-    background: #2a3942;
+    background: var(--wa-item-active, #2a3942);
 }
 
 .chat-avatar {
@@ -2973,7 +3005,7 @@ img { max-width: 100%; display: block; }
 }
 
 .thread-name {
-    color: #e9edef;
+    color: var(--wa-text, #e9edef);
 }
 
 .thread-preview {
@@ -2983,16 +3015,16 @@ img { max-width: 100%; display: block; }
 }
 
 .chat-body-container {
-    background: #0b141a;
+    background: var(--wa-bg, #0b141a);
     display: flex;
     flex-direction: column;
 }
 
 .chat-thread-header {
     padding: 14px 20px;
-    background: #202c33;
-    color: #e9edef;
-    border-bottom: 1px solid #222d34;
+    background: var(--wa-header-bg, #202c33);
+    color: var(--wa-text, #e9edef);
+    border-bottom: 1px solid var(--wa-border, #222d34);
 }
 
 .badge-whatsapp-sim {
@@ -3479,3 +3511,114 @@ body.dashboard-entering .app-wrapper {
     color: #1a1a1f !important; 
     -webkit-text-fill-color: #1a1a1f !important; 
 }
+
+/* ── Follow-ups Light Theme Variables ──────────────────────────── */
+:root[data-theme="light"] {
+
+    /* Risk Badges Light Theme Overrides */
+    --risk-stopped-bg: rgba(220, 38, 38, 0.1);
+    --risk-stopped-color: #b91c1c;
+    --risk-stopped-border: rgba(220, 38, 38, 0.2);
+    
+    --risk-missed-bg: rgba(217, 119, 6, 0.1);
+    --risk-missed-color: #b45309;
+    --risk-missed-border: rgba(217, 119, 6, 0.2);
+    
+    --risk-overdue-bg: rgba(124, 58, 237, 0.1);
+    --risk-overdue-color: #6d28d9;
+    --risk-overdue-border: rgba(124, 58, 237, 0.2);
+
+
+    /* WhatsApp Light Theme Overrides */
+    --wa-bg: #e5ddd5;
+    --wa-border: #d1d7db;
+    --wa-sidebar-bg: #ffffff;
+    --wa-header-bg: #f0f2f5;
+    --wa-text: #111b21;
+    --wa-item-border: #f2f2f2;
+    --wa-item-hover: #f5f6f6;
+    --wa-item-active: #f0f2f5;
+    --wa-bubble-sent-bg: #d9fdd3;
+    --wa-bubble-recv-bg: #ffffff;
+    --wa-bubble-text: #111b21;
+
+    --banner-bg: var(--theme-panel-alt);
+    --banner-text: var(--theme-text);
+    
+    --at-risk-bg: var(--theme-panel-alt);
+    --at-risk-card-bg: var(--theme-input-bg);
+    --at-risk-card-border: var(--theme-border);
+    --at-risk-badge-bg: var(--theme-primary);
+    --at-risk-badge-text: #ffffff;
+    
+    --nav-tabs-bg: var(--theme-panel-alt);
+    --nav-tabs-border: var(--theme-border);
+    --tab-link-color: var(--theme-text-muted);
+    --tab-link-hover-color: var(--theme-text);
+    --tab-link-hover-bg: var(--theme-input-bg);
+    
+    --tab-badge-bg: var(--theme-border);
+    --tab-badge-color: var(--theme-text);
+}
+
+.btn-outline { background: transparent; color: var(--theme-text); border: 1px solid var(--theme-border); }
+.btn-outline:hover { background: var(--theme-input-bg); color: var(--theme-primary); border-color: var(--theme-primary); }
+.btn-rose { background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); }
+.btn-rose:hover { background: #f43f5e; color: #ffffff; }
+
+    /* Prescription View Light Theme Overrides */
+    :root[data-theme="light"] .rx-clinical-box,
+    :root[data-theme="light"] .rx-footer-strip {
+        background: var(--theme-panel-alt);
+        border-color: var(--theme-border);
+    }
+    
+    :root[data-theme="light"] .rx-med-card,
+    :root[data-theme="light"] .rx-disclaimer-note {
+        background: var(--theme-input-bg);
+        border-color: var(--theme-border);
+    }
+    
+    :root[data-theme="light"] .med-card-header {
+        background: var(--theme-panel-alt);
+        border-color: var(--theme-border);
+    }
+    
+    :root[data-theme="light"] .clinical-label,
+    :root[data-theme="light"] .med-generic,
+    :root[data-theme="light"] .slot-header,
+    :root[data-theme="light"] .sig-line,
+    :root[data-theme="light"] .rx-disclaimer-note {
+        color: var(--theme-text-muted);
+    }
+    
+    :root[data-theme="light"] .clinical-value,
+    :root[data-theme="light"] .rx-section-title,
+    :root[data-theme="light"] .med-name,
+    :root[data-theme="light"] .slot-dose-value,
+    :root[data-theme="light"] .followup-date-value {
+        color: var(--theme-text);
+    }
+    
+    :root[data-theme="light"] .dosage-slot-card.slot-active {
+        background: var(--theme-panel-alt);
+        border-color: var(--theme-primary);
+    }
+    :root[data-theme="light"] .dosage-slot-card.slot-inactive {
+        background: var(--theme-input-bg);
+        opacity: 0.6;
+    }
+    :root[data-theme="light"] .dosage-slot-card {
+        border-color: var(--theme-border);
+    }
+    
+    :root[data-theme="light"] .modal-dialog {
+        background: var(--theme-panel);
+    }
+    :root[data-theme="light"] .modal-header {
+        border-bottom-color: var(--theme-border);
+    }
+    :root[data-theme="light"] .modal-footer {
+        background: var(--theme-panel-alt);
+        border-top-color: var(--theme-border);
+    }
