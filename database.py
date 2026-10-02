@@ -453,17 +453,16 @@ def seed_attendance_and_leaves(cursor, now):
         yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
         attendance_records = [
-            (1, today,     'present',  '08:30 AM', '04:30 PM', 'On time'),
-            (2, today,     'present',  '09:00 AM', '05:00 PM', 'Morning shift'),
-            (3, today,     'present',  '02:00 PM', '10:00 PM', 'Evening shift'),
-            (4, today,     'present',  '10:00 PM', '06:00 AM', 'Night shift'),
+            (1, today,     'present',  '08:15', '16:00', 'On time'),
+            (3, today,     'present',  '17:10', '23:00', 'Evening shift'),
+            (4, today,     'present',  '20:25', '06:00', 'Night shift'),
             (5, today,     'on-leave', None,       None,       'Approved casual leave'),
-            (6, today,     'present',  '02:00 PM', '10:00 PM', 'Evening shift'),
-            (7, today,     'present',  '08:45 AM', '04:45 PM', 'On time'),
+            (6, today,     'present',  '17:15', '23:00', 'Evening shift'),
+            (7, today,     'present',  '08:20', '16:00', 'On time'),
             (8, today,     'absent',   None,       None,       'Uninformed leave'),
-            (1, yesterday, 'present',  '08:30 AM', '04:30 PM', 'Completed shift'),
-            (2, yesterday, 'present',  '09:15 AM', '05:00 PM', 'Slightly late check-in'),
-            (3, yesterday, 'present',  '02:00 PM', '10:00 PM', 'Completed shift'),
+            (1, yesterday, 'present',  '08:10', '16:00', 'Completed shift'),
+            (2, yesterday, 'present',  '08:25', '16:00', 'Completed shift'),
+            (3, yesterday, 'present',  '17:05', '23:00', 'Completed shift'),
             (5, yesterday, 'on-leave', None,       None,       'Casual leave'),
         ]
         cursor.executemany(

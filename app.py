@@ -24,6 +24,16 @@ if not os.path.exists(DATABASE):
     create_tables()
     seed_demo_data()
 
+# ── SHIFT CONFIGURATIONS ────────────────────────────────────────────────
+SHIFT_STARTS = {
+    "morning": "08:00",
+    "afternoon": "14:00",
+    "evening": "17:00",
+    "night": "20:00"
+}
+ATTENDANCE_WINDOW_MINUTES = 30
+ATTENDANCE_DEMO_MODE = os.environ.get("ATTENDANCE_DEMO_MODE", "False").lower() in ["true", "1", "yes"]
+
 
 # ── Error Handlers ────────────────────────────────────────────────────
 
@@ -65,8 +75,11 @@ def require_login():
 
 
 @app.context_processor
-def inject_user():
-    return dict(current_user=getattr(g, 'user', None))
+def inject_globals():
+    return dict(
+        current_user=getattr(g, 'user', None),
+        attendance_demo_mode=ATTENDANCE_DEMO_MODE
+    )
 
 
 def role_required(*roles):
@@ -110,7 +123,131 @@ def log_activity(action, description, category='doctor'):
     )
 
 
+
+def auto_process_attendance(now=None):
+    """Process auto-absent logic for doctors whose check-in window has passed."""
+    if ATTENDANCE_DEMO_MODE:
+        return
+        
+    if now is None:
+        now = datetime.now()
+        
+    date_str = now.strftime("%Y-%m-%d")
+    
+    # Get all doctors
+    doctors = query_db("SELECT id, shift, status FROM doctors")
+    for doc in doctors:
+        doc_id = doc['id']
+        shift = doc['shift'] or 'morning'
+        shift_start_str = SHIFT_STARTS.get(shift, "08:00")
+        
+        try:
+            start_hour, start_minute = map(int, shift_start_str.split(':'))
+        except:
+            continue
+            
+        shift_start_time = now.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+        
+        # Handle night shift crossing midnight
+        if shift == 'night' and now.hour < 12:
+            shift_start_time -= timedelta(days=1)
+            date_str = shift_start_time.strftime("%Y-%m-%d")
+            
+        window_end_time = shift_start_time + timedelta(minutes=ATTENDANCE_WINDOW_MINUTES)
+        
+        if now > window_end_time:
+            # Window has passed. Check if they have an attendance record for today
+            existing = query_db("SELECT id FROM attendance WHERE doctor_id=? AND date=?", (doc_id, date_str), one=True)
+            if not existing:
+                # Check for approved leaves covering today
+                # Leave logic: start_date <= date_str <= end_date AND status='approved'
+                # Note: SQLite date strings can be compared directly if format is YYYY-MM-DD
+                leave = query_db(
+                    "SELECT id FROM doctor_leaves WHERE doctor_id=? AND status='approved' AND start_date <= ? AND end_date >= ?",
+                    (doc_id, date_str, date_str), one=True
+                )
+                
+                if leave:
+                    att_status = "on-leave"
+                    notes = "Auto-marked on-leave (Approved Leave)"
+                    # Update doctor status just in case
+                    execute_db("UPDATE doctors SET status='on-leave' WHERE id=?", (doc_id,))
+                else:
+                    att_status = "absent"
+                    notes = "Auto-marked absent: did not check in during shift window"
+                    execute_db("UPDATE doctors SET status='off-duty' WHERE id=?", (doc_id,))
+                    
+                execute_db(
+                    "INSERT INTO attendance (doctor_id, date, status, notes) VALUES (?, ?, ?, ?)",
+                    (doc_id, date_str, att_status, notes)
+                )
+
+
+def get_doctor_shift_info(doctor_id, now=None):
+    if now is None:
+        now = datetime.now()
+    
+    doc = query_db("SELECT shift FROM doctors WHERE id=?", (doctor_id,), one=True)
+    if not doc:
+        return None
+        
+    shift = doc['shift'] or 'morning'
+    shift_start_str = SHIFT_STARTS.get(shift, "08:00")
+    try:
+        start_hour, start_minute = map(int, shift_start_str.split(':'))
+    except:
+        start_hour, start_minute = 8, 0
+        
+    shift_start_time = now.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+    
+    if shift == 'night' and now.hour < 12:
+        shift_start_time -= timedelta(days=1)
+        
+    date_str = shift_start_time.strftime("%Y-%m-%d")
+    window_end_time = shift_start_time + timedelta(minutes=ATTENDANCE_WINDOW_MINUTES)
+    
+    is_open = shift_start_time <= now <= window_end_time
+    if ATTENDANCE_DEMO_MODE:
+        is_open = True
+        
+    marked = query_db("SELECT status, check_in FROM attendance WHERE doctor_id=? AND date=?", (doctor_id, date_str), one=True)
+    
+    leave = query_db(
+        "SELECT id FROM doctor_leaves WHERE doctor_id=? AND status='approved' AND start_date <= ? AND end_date >= ?",
+        (doctor_id, date_str, date_str), one=True
+    )
+    
+    status_text = ""
+    if marked:
+        if marked['status'] == 'present':
+            status_text = f"Already checked in at {marked['check_in']}"
+        elif marked['status'] == 'on-leave':
+            status_text = "You are on approved leave today"
+        else:
+            status_text = "Absent"
+    elif leave:
+        status_text = "You are on approved leave today"
+        is_open = False
+    elif is_open:
+        mins = int((window_end_time - now).total_seconds() / 60)
+        status_text = f"Window open for {max(0, mins)} more minutes" if not ATTENDANCE_DEMO_MODE else "Window open (Demo Mode)"
+    elif now < shift_start_time:
+        status_text = f"Check-in opens at {shift_start_str} and closes at {window_end_time.strftime('%H:%M')}"
+    else:
+        status_text = f"Window closed at {window_end_time.strftime('%H:%M')}"
+        
+    return {
+        'shift': shift,
+        'shift_start': shift_start_str,
+        'window_open': is_open and not marked,
+        'status_text': status_text,
+        'marked_today': bool(marked),
+        'att_record': marked
+    }
+
 # ── Auth Routes ───────────────────────────────────────────────────────
+
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -167,6 +304,7 @@ def logout():
 @role_required('head_doctor', 'doctor', 'staff')
 def dashboard():
     """Main dashboard page."""
+    auto_process_attendance()
 
     # --- Summary counts ---------------------------------------------------
     total_patients    = query_db("SELECT COUNT(*) AS c FROM patients", one=True)["c"]
@@ -236,8 +374,15 @@ def dashboard():
     today_date = datetime.now().strftime("%Y-%m-%d")
     overdue_followups = query_db("SELECT COUNT(*) AS c FROM followups WHERE (status='missed' OR (status='scheduled' AND followup_date < ?))", (today_date,), one=True)["c"]
 
+    
+    shift_info = None
+    if g.user and g.user['doctor_id']:
+        shift_info = get_doctor_shift_info(g.user['doctor_id'])
+        
     return render_template(
         "dashboard.html",
+        shift_info=shift_info,
+
         total_patients=total_patients,
         admitted_patients=admitted_patients,
         emergency_patients=emergency_patients,
@@ -735,6 +880,7 @@ def update_bed_status(bed_id):
 @role_required('head_doctor', 'doctor', 'staff')
 def doctors():
     """Doctors management view with roster, attendance, and leave requests."""
+    auto_process_attendance()
     active_tab = request.args.get("tab", "roster")
     search_query = request.args.get("q", "").strip()
     spec_filter = request.args.get("specialization", "").strip()
@@ -807,8 +953,15 @@ def doctors():
 
     leave_requests = query_db(leave_sql, leave_params)
 
+    
+    shift_info = None
+    if g.user and g.user['doctor_id']:
+        shift_info = get_doctor_shift_info(g.user['doctor_id'])
+        
     return render_template(
         "doctors.html",
+        shift_info=shift_info,
+
         active_tab=active_tab,
         doctors=doctors_list,
         doctors_total=doctors_total,
@@ -888,8 +1041,100 @@ def update_doctor_status(doctor_id):
     return redirect(request.referrer or url_for("doctors", tab="roster"))
 
 
+
+
+@app.route("/doctors/attendance/reset_demo", methods=["POST"])
+@role_required('head_doctor')
+def reset_demo_attendance():
+    """Reset today's attendance for a specific doctor in demo mode."""
+    if not ATTENDANCE_DEMO_MODE:
+        return render_template('403.html'), 403
+        
+    doctor_id = request.form.get("doctor_id")
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    
+    if doctor_id:
+        # Also need to consider night shift crossing midnight logic? 
+        # The simplest is to just delete any record for this doctor today.
+        execute_db("DELETE FROM attendance WHERE doctor_id=? AND date=?", (doctor_id, date_str))
+        
+        # We should also reset the doctor's status to their default based on shift or just available?
+        # A simple reset is fine.
+        execute_db("UPDATE doctors SET status='available' WHERE id=?", (doctor_id,))
+        
+        doc = query_db("SELECT name FROM doctors WHERE id=?", (doctor_id,), one=True)
+        doc_name = doc['name'] if doc else f"Doctor #{doctor_id}"
+        log_activity("Demo Reset", f"Reset today's attendance for {doc_name}", "doctor")
+        
+        from flask import flash
+        flash(f"Successfully reset today's attendance for {doc_name}.", "success")
+        
+    return redirect(url_for("doctors", tab="attendance"))
+
+@app.route("/doctors/attendance/self_mark", methods=["POST"])
+@role_required('doctor')
+def self_mark_attendance():
+    """Doctor self-marking attendance."""
+    user = get_current_user()
+    doctor_id = user['doctor_id'] if user else None
+    if not doctor_id:
+        return "Not authorized", 403
+        
+    now = datetime.now()
+    
+    # Get doctor shift
+    doc = query_db("SELECT shift FROM doctors WHERE id=?", (doctor_id,), one=True)
+    if not doc:
+        return "Doctor not found", 404
+        
+    shift = doc['shift'] or 'morning'
+    shift_start_str = SHIFT_STARTS.get(shift, "08:00")
+    try:
+        start_hour, start_minute = map(int, shift_start_str.split(':'))
+    except:
+        start_hour, start_minute = 8, 0
+        
+    shift_start_time = now.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+    
+    # Handle night shift crossing midnight
+    if shift == 'night' and now.hour < 12:
+        shift_start_time -= timedelta(days=1)
+        
+    date_str = shift_start_time.strftime("%Y-%m-%d")
+    
+    # Check if already marked today
+    existing = query_db("SELECT id FROM attendance WHERE doctor_id=? AND date=?", (doctor_id, date_str), one=True)
+    if existing:
+        return "Already marked today", 400
+        
+    window_end_time = shift_start_time + timedelta(minutes=ATTENDANCE_WINDOW_MINUTES)
+    
+    if not ATTENDANCE_DEMO_MODE:
+        if now < shift_start_time or now > window_end_time:
+            return "Check-in window is closed", 403
+            
+    # Check if on approved leave today
+    leave = query_db(
+        "SELECT id FROM doctor_leaves WHERE doctor_id=? AND status='approved' AND start_date <= ? AND end_date >= ?",
+        (doctor_id, date_str, date_str), one=True
+    )
+    if leave:
+        return "You are on approved leave today", 403
+            
+    # Mark present
+    check_in_time = now.strftime("%H:%M")
+    execute_db(
+        "INSERT INTO attendance (doctor_id, date, status, check_in, notes) VALUES (?, ?, 'present', ?, 'Self-marked')",
+        (doctor_id, date_str, check_in_time)
+    )
+    execute_db("UPDATE doctors SET status='available' WHERE id=?", (doctor_id,))
+    
+    log_activity("Attendance Self-Marked", f"Doctor {doctor_id} self-marked attendance for {date_str}", "doctor")
+    
+    return redirect(request.referrer or url_for("dashboard"))
+
 @app.route("/doctors/attendance/mark", methods=["POST"])
-@role_required('head_doctor', 'staff')
+@role_required('head_doctor')
 def mark_attendance():
     """Mark check-in / check-out / attendance status for a doctor."""
     doctor_id = request.form.get("doctor_id")
@@ -898,6 +1143,11 @@ def mark_attendance():
     check_in = request.form.get("check_in", "")
     check_out = request.form.get("check_out", "")
     notes = request.form.get("notes", "").strip()
+    
+    if notes:
+        notes += " (Updated by head doctor)"
+    else:
+        notes = "Updated by head doctor"
 
     if doctor_id:
         existing = query_db("SELECT id FROM attendance WHERE doctor_id=? AND date=?", (doctor_id, date), one=True)

@@ -17,6 +17,26 @@
             <i class="fa-solid fa-hospital"></i>
         </div>
     </div>
+    
+    {% if current_user.role == 'doctor' and shift_info %}
+    <div class="card mb-20 animate-in" style="border-left: 4px solid var(--theme-primary);">
+        <div class="p-20 flex-between flex-align-center">
+            <div>
+                <h4 style="margin: 0; color: var(--theme-primary);"><i class="fa-solid fa-clock"></i> My Today's Shift: <strong>{{ shift_info.shift|capitalize }}</strong> ({{ shift_info.shift_start }})</h4>
+            </div>
+            <div>
+                <form method="POST" action="{{ url_for('self_mark_attendance') }}" style="display: flex; align-items: center; gap: 10px;">
+                    {% if shift_info.window_open %}
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Mark My Attendance</button>
+                    {% else %}
+                        <span class="text-sm text-muted"><strong>{{ shift_info.status_text }}</strong></span>
+                        <button type="button" class="btn btn-secondary" disabled><i class="fa-solid fa-lock"></i> Mark My Attendance</button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- ── Top Stats Cards ────────────────────────────────────── -->
     <div class="stats-grid">

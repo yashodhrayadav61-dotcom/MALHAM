@@ -189,7 +189,11 @@
         <div class="card">
             <div class="card-header flex-between">
                 <div>
-                    <h3><i class="fa-solid fa-clipboard-user"></i> Shift Attendance</h3>
+                    <h3><i class="fa-solid fa-clipboard-user"></i> Shift Attendance
+                        {% if attendance_demo_mode %}
+                        <span class="badge-shift shift-night" style="font-size:0.7rem; margin-left: 8px;">Demo Mode</span>
+                        {% endif %}
+                    </h3>
                     <p class="subtitle">Record daily attendance, check-in, and check-out times</p>
                 </div>
 
@@ -204,6 +208,43 @@
             </div>
 
             <div class="card-body p-0">
+                {% if attendance_demo_mode and current_user.role == 'head_doctor' %}
+                <div class="p-20" style="border-bottom: 1px solid var(--theme-border); background: var(--theme-panel-alt); display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h4 style="margin: 0; color: var(--amber-500);"><i class="fa-solid fa-triangle-exclamation"></i> Demo Reset</h4>
+                        <p class="text-sm text-muted" style="margin-top: 4px;">Delete today's attendance record for a doctor to allow them to check in again.</p>
+                    </div>
+                    <form method="POST" action="{{ url_for('reset_demo_attendance') }}" style="display: flex; gap: 10px;">
+                        <select name="doctor_id" class="form-select" required>
+                            <option value="">Select Doctor...</option>
+                            {% for row in attendance_list %}
+                                <option value="{{ row.doctor_id }}">{{ row.doctor_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-outline"><i class="fa-solid fa-trash"></i> Reset</button>
+                    </form>
+                </div>
+                {% endif %}
+                {% if current_user.role == 'doctor' and shift_info and att_date == today_date %}
+                <div class="p-20" style="border-bottom: 1px solid var(--theme-border); background: var(--theme-panel-alt);">
+                    <div class="flex-between flex-align-center">
+                        <div>
+                            <h4 style="margin: 0; color: var(--theme-primary);">My Today's Shift: <strong>{{ shift_info.shift|capitalize }}</strong> ({{ shift_info.shift_start }})</h4>
+                        </div>
+                        <div>
+                            <form method="POST" action="{{ url_for('self_mark_attendance') }}" style="display: flex; align-items: center; gap: 10px;">
+                                {% if shift_info.window_open %}
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Mark My Attendance</button>
+                                {% else %}
+                                    <span class="text-sm text-muted"><strong>{{ shift_info.status_text }}</strong></span>
+                                    <button type="button" class="btn btn-secondary" disabled><i class="fa-solid fa-lock"></i> Mark My Attendance</button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -214,7 +255,9 @@
                             <th>Check-in</th>
                             <th>Check-out</th>
                             <th>Notes</th>
+                            {% if current_user.role == 'head_doctor' %}
                             <th>Action</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -232,12 +275,14 @@
                             <td>{{ row.check_in or '—' }}</td>
                             <td>{{ row.check_out or '—' }}</td>
                             <td class="text-muted">{{ row.notes or '—' }}</td>
+                            {% if current_user.role == 'head_doctor' %}
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" 
                                         onclick='openMarkAttendanceModal({{ row.doctor_id }}, "{{ row.doctor_name|e }}", "{{ att_date }}", "{{ row.att_status or "present" }}", "{{ row.check_in or "" }}", "{{ row.check_out or "" }}", "{{ row.notes or "" }}")'>
                                     <i class="fa-solid fa-pen"></i> Mark
                                 </button>
                             </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
