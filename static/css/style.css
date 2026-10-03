@@ -88,6 +88,109 @@
     --radius-xl: 20px;
     --radius-full: 9999px;
     --ease-out: cubic-bezier(.4,0,.2,1);
+
+    /* Smart Prescriptions Module Theme Tokens (Dark Mode Default) */
+    --rx-sheet-bg: #0d1322;
+    --rx-sheet-text: #f8fafc;
+    --rx-sheet-border: #23314f;
+    --rx-sheet-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+
+    --rx-header-bg: linear-gradient(135deg, #162035 0%, #0d1322 100%);
+    --rx-header-border: #ff2a5f;
+    --rx-header-shadow: 0 4px 15px rgba(255, 42, 95, 0.15);
+
+    --rx-title-color: #ffffff;
+    --rx-tagline-color: #94a3b8;
+
+    --rx-logo-bg: rgba(255, 42, 95, 0.15);
+    --rx-logo-border: #ff2a5f;
+    --rx-logo-color: #ff2a5f;
+    --rx-logo-glow: 0 0 12px rgba(255, 42, 95, 0.35);
+
+    --rx-badge-bg: #ff2a5f;
+    --rx-badge-text: #ffffff;
+    --rx-badge-glow: 0 0 15px rgba(255, 42, 95, 0.35);
+
+    --rx-date-color: #94a3b8;
+    --rx-date-strong: #ffffff;
+
+    --rx-meta-box-bg: #162035;
+    --rx-meta-box-border: #23314f;
+    --rx-box-label-color: #ff2a5f;
+    --rx-meta-name-color: #ffffff;
+    --rx-meta-details-color: #cbd5e1;
+    --rx-meta-strong-color: #ffffff;
+
+    --rx-blood-bg: rgba(239, 68, 68, 0.2);
+    --rx-blood-color: #fca5a5;
+
+    --rx-clinical-bg: #111a2e;
+    --rx-clinical-border: #1e2d4a;
+    --rx-clinical-border-left: #f59e0b;
+    --rx-clinical-label-color: #e2e8f0;
+    --rx-clinical-value-color: #cbd5e1;
+
+    --rx-section-title-color: #ffffff;
+    --rx-section-title-icon: #ff2a5f;
+    --rx-section-title-border: #23314f;
+
+    --rx-med-card-bg: #162035;
+    --rx-med-card-border: #23314f;
+    --rx-med-header-bg: #1e2c47;
+    --rx-med-header-border: #23314f;
+    --rx-med-name-color: #ffffff;
+    --rx-med-strength-color: #ff2a5f;
+    --rx-med-generic-color: #94a3b8;
+
+    --rx-med-timing-bg: rgba(255, 42, 95, 0.15);
+    --rx-med-timing-color: #ff6b8b;
+    --rx-med-timing-border: rgba(255, 42, 95, 0.3);
+
+    --rx-slot-active-bg: linear-gradient(135deg, #1b2640 0%, #172036 100%);
+    --rx-slot-active-border: rgba(255, 42, 95, 0.4);
+    --rx-slot-active-shadow: 0 4px 12px rgba(255, 42, 95, 0.08);
+
+    --rx-slot-inactive-bg: #111726;
+    --rx-slot-inactive-border: #23314f;
+    --rx-slot-inactive-opacity: 0.6;
+
+    --rx-slot-header-color: #94a3b8;
+    --rx-slot-time-color: #64748b;
+    --rx-slot-dose-color: #ffffff;
+    --rx-slot-dose-shadow: 0 0 10px rgba(255, 42, 95, 0.2);
+
+    --rx-med-footer-border: #23314f;
+    --rx-med-footer-color: #cbd5e1;
+
+    --rx-duration-bg: rgba(16, 185, 129, 0.15);
+    --rx-duration-color: #6ee7b7;
+    --rx-duration-border: rgba(16, 185, 129, 0.3);
+
+    --rx-instruction-color: #e2e8f0;
+
+    --rx-followup-bg: linear-gradient(135deg, rgba(255, 42, 95, 0.12) 0%, rgba(255, 42, 95, 0.04) 100%);
+    --rx-followup-border: rgba(255, 42, 95, 0.35);
+    --rx-followup-title-color: #ff2a5f;
+    --rx-followup-icon-color: #ff2a5f;
+    --rx-followup-date-color: #ffffff;
+
+    --rx-disclaimer-bg: #0d1527;
+    --rx-disclaimer-border: #1e2d4a;
+    --rx-disclaimer-color: #94a3b8;
+    --rx-disclaimer-icon-color: #ff2a5f;
+
+    --rx-footer-bg: #111a2e;
+    --rx-footer-border: #23314f;
+    --rx-footer-text: #94a3b8;
+    --rx-footer-sig-line: #64748b;
+    --rx-footer-doc-name: #ffffff;
+
+    --rx-lang-group-bg: #0f172a;
+    --rx-lang-group-border: #334155;
+    --rx-lang-btn-text: #94a3b8;
+    --rx-lang-btn-active-bg: #ff2a5f;
+    --rx-lang-btn-active-text: #ffffff;
+    --rx-lang-btn-active-shadow: 0 0 10px rgba(255, 42, 95, 0.35);
 }
 
 :root[data-theme="light"] {
@@ -118,6 +221,109 @@
     --wa-bubble-sent-bg: #d9fdd3;
     --wa-bubble-recv-bg: #ffffff;
     --wa-bubble-text: #111b21;
+
+    /* Smart Prescriptions Module Theme Tokens (Light Mode Paper & Teal) */
+    --rx-sheet-bg: #ffffff;
+    --rx-sheet-text: #1a1a1f;
+    --rx-sheet-border: #e2e8f0;
+    --rx-sheet-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+
+    --rx-header-bg: linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%);
+    --rx-header-border: #0d9488;
+    --rx-header-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
+
+    --rx-title-color: #0f4c5c;
+    --rx-tagline-color: #64748b;
+
+    --rx-logo-bg: rgba(15, 118, 110, 0.1);
+    --rx-logo-border: #0f766e;
+    --rx-logo-color: #0f766e;
+    --rx-logo-glow: none;
+
+    --rx-badge-bg: #0f766e;
+    --rx-badge-text: #ffffff;
+    --rx-badge-glow: none;
+
+    --rx-date-color: #64748b;
+    --rx-date-strong: #0f4c5c;
+
+    --rx-meta-box-bg: #f4f8fb;
+    --rx-meta-box-border: #dbe5ee;
+    --rx-box-label-color: #0f766e;
+    --rx-meta-name-color: #1a1a1f;
+    --rx-meta-details-color: #475569;
+    --rx-meta-strong-color: #1a1a1f;
+
+    --rx-blood-bg: rgba(225, 29, 72, 0.1);
+    --rx-blood-color: #be123c;
+
+    --rx-clinical-bg: #fffbeb;
+    --rx-clinical-border: #fde68a;
+    --rx-clinical-border-left: #f59e0b;
+    --rx-clinical-label-color: #78350f;
+    --rx-clinical-value-color: #451a03;
+
+    --rx-section-title-color: #0f4c5c;
+    --rx-section-title-icon: #0f766e;
+    --rx-section-title-border: #e2e8f0;
+
+    --rx-med-card-bg: #ffffff;
+    --rx-med-card-border: #e2e8f0;
+    --rx-med-header-bg: #f8fafc;
+    --rx-med-header-border: #e2e8f0;
+    --rx-med-name-color: #1a1a1f;
+    --rx-med-strength-color: #0f766e;
+    --rx-med-generic-color: #64748b;
+
+    --rx-med-timing-bg: #f0fdf4;
+    --rx-med-timing-color: #166534;
+    --rx-med-timing-border: #bbf7d0;
+
+    --rx-slot-active-bg: #ffffff;
+    --rx-slot-active-border: #e2e8f0;
+    --rx-slot-active-shadow: none;
+
+    --rx-slot-inactive-bg: #f8fafc;
+    --rx-slot-inactive-border: #e2e8f0;
+    --rx-slot-inactive-opacity: 0.6;
+
+    --rx-slot-header-color: #475569;
+    --rx-slot-time-color: #64748b;
+    --rx-slot-dose-color: #1a1a1f;
+    --rx-slot-dose-shadow: none;
+
+    --rx-med-footer-border: #e2e8f0;
+    --rx-med-footer-color: #334155;
+
+    --rx-duration-bg: #ecfdf5;
+    --rx-duration-color: #047857;
+    --rx-duration-border: #a7f3d0;
+
+    --rx-instruction-color: #334155;
+
+    --rx-followup-bg: #f0fdf4;
+    --rx-followup-border: #bbf7d0;
+    --rx-followup-title-color: #15803d;
+    --rx-followup-icon-color: #16a34a;
+    --rx-followup-date-color: #14532d;
+
+    --rx-disclaimer-bg: #f8fafc;
+    --rx-disclaimer-border: #e2e8f0;
+    --rx-disclaimer-color: #334155;
+    --rx-disclaimer-icon-color: #0f766e;
+
+    --rx-footer-bg: #f8fafc;
+    --rx-footer-border: #e2e8f0;
+    --rx-footer-text: #475569;
+    --rx-footer-sig-line: #94a3b8;
+    --rx-footer-doc-name: #1a1a1f;
+
+    --rx-lang-group-bg: #f1f5f9;
+    --rx-lang-group-border: #cbd5e1;
+    --rx-lang-btn-text: #475569;
+    --rx-lang-btn-active-bg: #0f766e;
+    --rx-lang-btn-active-text: #ffffff;
+    --rx-lang-btn-active-shadow: 0 2px 8px rgba(15, 118, 110, 0.2);
 
     /* Main Theme System Variables */
     --theme-bg: #ffffff;
@@ -2396,16 +2602,16 @@ a.stat-pill.active {
 /* Language Toggle Pill Group */
 .lang-toggle-pill-group {
     display: inline-flex;
-    background: #0f172a;
+    background: var(--rx-lang-group-bg);
     padding: 4px;
     border-radius: var(--radius-full);
-    border: 1px solid #334155;
+    border: 1px solid var(--rx-lang-group-border);
 }
 
 .lang-btn {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: var(--rx-lang-btn-text);
     padding: 6px 14px;
     border-radius: var(--radius-full);
     font-size: 0.82rem;
@@ -2415,9 +2621,9 @@ a.stat-pill.active {
 }
 
 .lang-btn.active {
-    background: var(--rx-neon-red);
-    color: #ffffff;
-    box-shadow: 0 0 10px var(--rx-neon-red-glow);
+    background: var(--rx-lang-btn-active-bg);
+    color: var(--rx-lang-btn-active-text);
+    box-shadow: var(--rx-lang-btn-active-shadow);
 }
 
 /* Status Change Select Pill */
@@ -2431,24 +2637,24 @@ a.stat-pill.active {
 .status-select-pill.status-completed { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
 .status-select-pill.status-cancelled { background: #fef2f2; color: #b91c1c; border-color: #fecdd3; }
 
-/* ── PATIENT PRESCRIPTION VIEW CARD (DARK THEME & NEON ACCENTS) ──────── */
+/* ── PATIENT PRESCRIPTION VIEW CARD ──────── */
 .rx-patient-card {
-    background: var(--rx-dark-bg);
-    color: #f8fafc;
-    border: 1px solid var(--rx-card-border);
+    background: var(--rx-sheet-bg);
+    color: var(--rx-sheet-text);
+    border: 1px solid var(--rx-sheet-border);
     border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--rx-sheet-shadow);
 }
 
 .rx-header-strip {
-    background: linear-gradient(135deg, #162035 0%, #0d1322 100%);
+    background: var(--rx-header-bg);
     padding: 24px 30px;
-    border-bottom: 2px solid var(--rx-neon-red);
+    border-bottom: 2px solid var(--rx-header-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 15px rgba(255, 42, 95, 0.15);
+    box-shadow: var(--rx-header-shadow);
 }
 
 .brand-hospital-title {
@@ -2461,45 +2667,49 @@ a.stat-pill.active {
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(255, 42, 95, 0.15);
-    border: 1px solid var(--rx-neon-red);
-    color: var(--rx-neon-red);
+    background: var(--rx-logo-bg);
+    border: 1px solid var(--rx-logo-border);
+    color: var(--rx-logo-color);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    box-shadow: 0 0 12px var(--rx-neon-red-glow);
+    box-shadow: var(--rx-logo-glow);
 }
 
 .brand-hospital-title h2 {
-    color: #ffffff;
+    color: var(--rx-title-color);
     font-size: 1.35rem;
     font-weight: 800;
     letter-spacing: 0.5px;
 }
 
 .brand-hospital-title .tagline {
-    color: #94a3b8;
+    color: var(--rx-tagline-color);
     font-size: 0.78rem;
 }
 
 .rx-badge-neon {
-    background: var(--rx-neon-red);
-    color: #ffffff;
+    background: var(--rx-badge-bg);
+    color: var(--rx-badge-text);
     font-weight: 800;
     padding: 6px 16px;
     border-radius: var(--radius-full);
     font-size: 1.1rem;
     letter-spacing: 1px;
-    box-shadow: 0 0 15px var(--rx-neon-red-glow);
+    box-shadow: var(--rx-badge-glow);
     display: inline-block;
 }
 
 .rx-date-label {
     font-size: 0.78rem;
-    color: #94a3b8;
+    color: var(--rx-date-color);
     margin-top: 6px;
     text-align: right;
+}
+
+.rx-date-label strong {
+    color: var(--rx-date-strong);
 }
 
 /* Patient & Doctor Meta Grid */
@@ -2510,8 +2720,8 @@ a.stat-pill.active {
 }
 
 .meta-box {
-    background: var(--rx-card-dark);
-    border: 1px solid var(--rx-card-border);
+    background: var(--rx-meta-box-bg);
+    border: 1px solid var(--rx-meta-box-border);
     border-radius: var(--radius-lg);
     padding: 18px 20px;
 }
@@ -2520,7 +2730,7 @@ a.stat-pill.active {
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 1px;
-    color: var(--rx-neon-red);
+    color: var(--rx-box-label-color);
     margin-bottom: 8px;
     display: flex;
     align-items: center;
@@ -2528,7 +2738,7 @@ a.stat-pill.active {
 }
 
 .patient-name, .doctor-name {
-    color: #ffffff;
+    color: var(--rx-meta-name-color);
     font-size: 1.15rem;
     font-weight: 700;
     margin-bottom: 8px;
@@ -2539,12 +2749,16 @@ a.stat-pill.active {
     flex-wrap: wrap;
     gap: 12px;
     font-size: 0.82rem;
-    color: #cbd5e1;
+    color: var(--rx-meta-details-color);
+}
+
+.meta-details-row strong {
+    color: var(--rx-meta-strong-color);
 }
 
 .badge-blood-inline {
-    background: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
+    background: var(--rx-blood-bg);
+    color: var(--rx-blood-color);
     padding: 1px 6px;
     border-radius: 4px;
     font-weight: 700;
@@ -2552,9 +2766,9 @@ a.stat-pill.active {
 
 /* Clinical Box */
 .rx-clinical-box {
-    background: #111a2e;
-    border: 1px solid #1e2d4a;
-    border-left: 4px solid var(--amber-500);
+    background: var(--rx-clinical-bg);
+    border: 1px solid var(--rx-clinical-border);
+    border-left: 4px solid var(--rx-clinical-border-left);
     border-radius: var(--radius-md);
     padding: 16px 20px;
 }
@@ -2562,24 +2776,28 @@ a.stat-pill.active {
 .clinical-label {
     font-size: 0.82rem;
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--rx-clinical-label-color);
     margin-bottom: 2px;
 }
 
 .clinical-value {
-    color: #cbd5e1;
+    color: var(--rx-clinical-value-color);
     font-size: 0.9rem;
 }
 
 .rx-section-title {
-    color: #ffffff;
+    color: var(--rx-section-title-color);
     font-size: 1.1rem;
     font-weight: 700;
     display: flex;
     align-items: center;
     gap: 8px;
-    border-bottom: 1px solid var(--rx-card-border);
+    border-bottom: 1px solid var(--rx-section-title-border);
     padding-bottom: 10px;
+}
+
+.rx-section-title i {
+    color: var(--rx-section-title-icon);
 }
 
 /* Medication List Cards */
@@ -2590,40 +2808,40 @@ a.stat-pill.active {
 }
 
 .rx-med-card {
-    background: var(--rx-card-dark);
-    border: 1px solid var(--rx-card-border);
+    background: var(--rx-med-card-bg);
+    border: 1px solid var(--rx-med-card-border);
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
 .med-card-header {
-    background: #1e2c47;
+    background: var(--rx-med-header-bg);
     padding: 14px 20px;
-    border-bottom: 1px solid var(--rx-card-border);
+    border-bottom: 1px solid var(--rx-med-header-border);
 }
 
 .med-name {
-    color: #ffffff;
+    color: var(--rx-med-name-color);
     font-size: 1.1rem;
     font-weight: 700;
 }
 
 .med-strength {
-    color: var(--rx-neon-red);
+    color: var(--rx-med-strength-color);
     font-size: 0.9rem;
     font-weight: 600;
 }
 
 .med-generic {
     font-size: 0.78rem;
-    color: #94a3b8;
+    color: var(--rx-med-generic-color);
     margin-top: 2px;
 }
 
 .med-timing-badge {
-    background: rgba(255, 42, 95, 0.15);
-    color: #ff6b8b;
-    border: 1px solid rgba(255, 42, 95, 0.3);
+    background: var(--rx-med-timing-bg);
+    color: var(--rx-med-timing-color);
+    border: 1px solid var(--rx-med-timing-border);
     padding: 4px 12px;
     border-radius: var(--radius-full);
     font-size: 0.82rem;
@@ -2647,25 +2865,25 @@ a.stat-pill.active {
 .dosage-slot-card {
     border-radius: var(--radius-md);
     padding: 14px 16px;
-    border: 1px solid #23314f;
+    border: 1px solid var(--rx-slot-inactive-border);
     transition: all 0.2s ease;
 }
 
 .dosage-slot-card.slot-active {
-    background: linear-gradient(135deg, #1b2640 0%, #172036 100%);
-    border-color: rgba(255, 42, 95, 0.4);
-    box-shadow: 0 4px 12px rgba(255, 42, 95, 0.08);
+    background: var(--rx-slot-active-bg);
+    border-color: var(--rx-slot-active-border);
+    box-shadow: var(--rx-slot-active-shadow);
 }
 
 .dosage-slot-card.slot-inactive {
-    background: #111726;
-    opacity: 0.6;
+    background: var(--rx-slot-inactive-bg);
+    opacity: var(--rx-slot-inactive-opacity);
 }
 
 .slot-header {
     font-size: 0.82rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--rx-slot-header-color);
     margin-bottom: 6px;
 }
 
@@ -2675,62 +2893,144 @@ a.stat-pill.active {
 
 .slot-time-tag {
     font-size: 0.72rem;
-    color: #64748b;
+    color: var(--rx-slot-time-color);
     font-weight: 400;
 }
 
 .slot-dose-value {
     font-size: 1.15rem;
-    color: #ffffff;
+    color: var(--rx-slot-dose-color);
 }
 
 .slot-active .slot-dose-value {
-    color: #ffffff;
-    text-shadow: 0 0 10px rgba(255, 42, 95, 0.2);
+    color: var(--rx-slot-dose-color);
+    text-shadow: var(--rx-slot-dose-shadow);
+}
+
+/* Light mode specific slot chip overrides */
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-morning {
+    background: #fffbeb;
+    border-color: #fde68a;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.12);
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-morning .slot-header {
+    color: #92400e;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-morning .icon-morning {
+    color: #d97706;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-morning .slot-time-tag {
+    color: #b45309;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-morning .slot-dose-value {
+    color: #78350f;
+    text-shadow: none;
+}
+
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-afternoon {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-afternoon .slot-header {
+    color: #0369a1;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-afternoon .icon-afternoon {
+    color: #0284c7;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-afternoon .slot-time-tag {
+    color: #0284c7;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-afternoon .slot-dose-value {
+    color: #075985;
+    text-shadow: none;
+}
+
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-night {
+    background: #f5f3ff;
+    border-color: #ddd6fe;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.12);
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-night .slot-header {
+    color: #6d28d9;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-night .icon-night {
+    color: #7c3aed;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-night .slot-time-tag {
+    color: #7c3aed;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-active.slot-night .slot-dose-value {
+    color: #5b21b6;
+    text-shadow: none;
+}
+
+:root[data-theme="light"] .dosage-slot-card.slot-inactive {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    opacity: 0.6;
+}
+:root[data-theme="light"] .dosage-slot-card.slot-inactive .slot-header,
+:root[data-theme="light"] .dosage-slot-card.slot-inactive .slot-time-tag,
+:root[data-theme="light"] .dosage-slot-card.slot-inactive .slot-dose-value {
+    color: #64748b;
+    text-shadow: none;
 }
 
 .med-footer-row {
     font-size: 0.85rem;
-    color: #cbd5e1;
-    border-top: 1px dashed var(--rx-card-border);
+    color: var(--rx-med-footer-color);
+    border-top: 1px dashed var(--rx-med-footer-border);
     padding-top: 12px;
 }
 
 .med-duration-tag {
-    background: rgba(16, 185, 129, 0.15);
-    color: #6ee7b7;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: var(--rx-duration-bg);
+    color: var(--rx-duration-color);
+    border: 1px solid var(--rx-duration-border);
     padding: 4px 10px;
     border-radius: var(--radius-sm);
     font-size: 0.8rem;
 }
 
 .med-instruction-tag {
-    color: #e2e8f0;
+    color: var(--rx-instruction-color);
+}
+
+.med-instruction-tag i {
+    color: var(--rx-section-title-icon);
 }
 
 /* Follow-up Box */
 .rx-followup-box {
-    background: linear-gradient(135deg, rgba(255, 42, 95, 0.12) 0%, rgba(255, 42, 95, 0.04) 100%);
-    border: 1px solid rgba(255, 42, 95, 0.35);
+    background: var(--rx-followup-bg);
+    border: 1px solid var(--rx-followup-border);
     border-radius: var(--radius-lg);
     padding: 16px 20px;
 }
 
+.followup-icon {
+    color: var(--rx-followup-icon-color);
+}
+
+.followup-title {
+    color: var(--rx-followup-title-color);
+}
+
 .followup-date-value {
-    color: #ffffff;
+    color: var(--rx-followup-date-color);
     font-size: 1.3rem;
     letter-spacing: 0.5px;
 }
 
 /* MANDATORY LEGAL DISCLAIMER NOTE */
 .rx-disclaimer-note {
-    background: #0d1527;
-    border: 1px solid #1e2d4a;
+    background: var(--rx-disclaimer-bg);
+    border: 1px solid var(--rx-disclaimer-border);
     border-radius: var(--radius-md);
     padding: 14px 18px;
     font-size: 0.85rem;
-    color: #94a3b8;
+    color: var(--rx-disclaimer-color);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -2738,16 +3038,28 @@ a.stat-pill.active {
     justify-content: center;
 }
 
+.rx-disclaimer-note i {
+    color: var(--rx-disclaimer-icon-color);
+}
+
 /* Footer Strip */
 .rx-footer-strip {
-    background: #111a2e;
+    background: var(--rx-footer-bg);
     padding: 20px 30px;
-    border-top: 1px solid var(--rx-card-border);
+    border-top: 1px solid var(--rx-footer-border);
+}
+
+.rx-footer-strip .text-muted {
+    color: var(--rx-footer-text);
 }
 
 .sig-line {
-    color: #64748b;
+    color: var(--rx-footer-sig-line);
     font-size: 0.9rem;
+}
+
+.doctor-signature-box .font-semibold {
+    color: var(--rx-footer-doc-name);
 }
 
 /* ── PRINT STYLESHEET (@media print) ────────────────────────────────── */

@@ -83,9 +83,9 @@
             <div class="brand-hospital-title">
                 <div class="brand-logo-icon">
                     <svg viewBox="0 0 100 100" style="width: 24px; height: 24px; display: block;" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="8" y="8" width="84" height="84" rx="22" fill="var(--theme-primary)" opacity="0.12"/>
-                        <rect x="8" y="8" width="84" height="84" rx="22" stroke="var(--theme-primary)" stroke-width="2.5" fill="none" opacity="0.25"/>
-                        <path d="M 24 72 L 24 38 L 36 38 L 44 22 L 56 78 L 64 38 L 76 38 L 76 72" stroke="var(--theme-primary)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <rect x="8" y="8" width="84" height="84" rx="22" fill="currentColor" opacity="0.12"/>
+                        <rect x="8" y="8" width="84" height="84" rx="22" stroke="currentColor" stroke-width="2.5" fill="none" opacity="0.25"/>
+                        <path d="M 24 72 L 24 38 L 36 38 L 44 22 L 56 78 L 64 38 L 76 38 L 76 72" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                         <path d="M 24 72 L 24 38" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
                         <path d="M 76 38 L 76 72" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
                     </svg>
@@ -136,14 +136,14 @@
             <div class="rx-clinical-box mb-25">
                 {% if rx.diagnosis_note %}
                 <div class="clinical-item">
-                    <div class="clinical-label"><i class="fa-solid fa-clipboard-check text-rose-500"></i> <span class="lang-text" data-en="Diagnosis Note" data-hi="निदान टिप्पणी">Diagnosis Note</span>:</div>
+                    <div class="clinical-label"><i class="fa-solid fa-clipboard-check"></i> <span class="lang-text" data-en="Diagnosis Note" data-hi="निदान टिप्पणी">Diagnosis Note</span>:</div>
                     <div class="clinical-value">{{ rx.diagnosis_note }}</div>
                 </div>
                 {% endif %}
 
                 {% if rx.general_advice %}
                 <div class="clinical-item mt-10">
-                    <div class="clinical-label"><i class="fa-solid fa-lightbulb text-amber-500"></i> <span class="lang-text" data-en="Doctor's General Advice" data-hi="डॉक्टर की सामान्य सलाह">Doctor's General Advice</span>:</div>
+                    <div class="clinical-label"><i class="fa-solid fa-lightbulb"></i> <span class="lang-text" data-en="Doctor's General Advice" data-hi="डॉक्टर की सामान्य सलाह">Doctor's General Advice</span>:</div>
                     <div class="clinical-value">{{ rx.general_advice }}</div>
                 </div>
                 {% endif %}
@@ -152,7 +152,7 @@
 
             <!-- ── PRESCRIBED MEDICINES CARDS ──────────────────────────────── -->
             <div class="rx-section-title mb-15">
-                <i class="fa-solid fa-pills text-rose-500"></i> 
+                <i class="fa-solid fa-pills"></i> 
                 <span class="lang-text" data-en="Prescribed Medications & Daily Schedule" data-hi="निर्धारित दवाएं और दैनिक समय सारणी">Prescribed Medications & Daily Schedule</span>
             </div>
 
@@ -181,7 +181,7 @@
                         <!-- 3 Slot Big Dosage Cards: Morning / Afternoon / Night -->
                         <div class="dosage-slots-grid">
                             {% for slot in item.slots %}
-                            <div class="dosage-slot-card {% if slot.active %}slot-active{% else %}slot-inactive{% endif %}">
+                            <div class="dosage-slot-card {% if slot.active %}slot-active{% else %}slot-inactive{% endif %} slot-{{ slot.label|lower }}">
                                 <div class="slot-header flex-align-center gap-6">
                                     {% if slot.label == 'Morning' %}
                                     <i class="fa-solid fa-sun icon-morning"></i>
@@ -211,7 +211,7 @@
 
                             {% if item.special_instructions %}
                             <div class="med-instruction-tag">
-                                <i class="fa-solid fa-circle-info text-rose-500"></i> <span class="lang-text" data-en="Instructions" data-hi="निर्देश">Instructions</span>: 
+                                <i class="fa-solid fa-circle-info"></i> <span class="lang-text" data-en="Instructions" data-hi="निर्देश">Instructions</span>: 
                                 <span>{{ item.special_instructions }}</span>
                             </div>
                             {% endif %}
@@ -226,9 +226,9 @@
             {% if rx.follow_up_date %}
             <div class="rx-followup-box mt-25">
                 <div class="flex-align-center gap-10">
-                    <i class="fa-solid fa-calendar-check text-rose-500 font-xl"></i>
+                    <i class="fa-solid fa-calendar-check followup-icon font-xl"></i>
                     <div>
-                        <div class="font-bold text-rose-500"><span class="lang-text" data-en="NEXT FOLLOW-UP VISIT DUE" data-hi="अगली मुलाकात (फॉलो-अप) की तारीख">NEXT FOLLOW-UP VISIT DUE</span></div>
+                        <div class="font-bold followup-title"><span class="lang-text" data-en="NEXT FOLLOW-UP VISIT DUE" data-hi="अगली मुलाकात (फॉलो-अप) की तारीख">NEXT FOLLOW-UP VISIT DUE</span></div>
                         <div class="followup-date-value font-xl font-bold">{{ rx.follow_up_date }}</div>
                     </div>
                 </div>
@@ -237,7 +237,7 @@
 
             <!-- MANDATORY LEGAL / DOCTOR DISCLAIMER NOTE -->
             <div class="rx-disclaimer-note mt-30">
-                <i class="fa-solid fa-shield-halved text-rose-500"></i>
+                <i class="fa-solid fa-shield-halved"></i>
                 <span class="lang-text" 
                       data-en="Follow your doctor's instructions. This sheet only explains what your doctor prescribed." 
                       data-hi="अपने डॉक्टर के निर्देशों का पालन करें। यह पर्ची केवल यह स्पष्ट करती है कि आपके डॉक्टर ने क्या लिखा है।">
